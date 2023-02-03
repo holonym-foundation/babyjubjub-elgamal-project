@@ -1,8 +1,9 @@
 
 use clap::{Subcommand, Args, Parser};
+use ff::PrimeField;
 use std::env;
 // use issuer::Issuer;
-use babyjubjub_rs::{Fr, PrivateKey, ElGamalEncryption, B8, new_key};
+use babyjubjub_rs::{Fr, PrivateKey, ElGamalEncryption, B8, new_key, Point};
 use num_bigint::BigInt;
 
 /// BabyJubJub ElGamal
@@ -31,27 +32,26 @@ struct Encrypt {
     my: String,
     /// x-coord of public key
     #[arg(long)]
-    pubkeyx: String,
+    pkx: String,
     /// y-coord of message
     #[arg(long)]
-    pubkeyy: String,
+    pky: String,
 }
 #[derive(Args)]
 struct Decrypt {
-    /// x-coord of message
+    /// x-coord of c1 (public nonce)
     #[arg(long)]
-    mx: String,
-    /// y-coord of message
+    c1x: String,
+    /// y-coord of c1 (public nonce)
     #[arg(long)]
-    my: String,
-    /// x-coord of public key
+    c1y: String,
+    /// x-coord of c2 (shared secret added to message)
     #[arg(long)]
-    pubkeyx: String,
-    /// y-coord of public key
+    c2x: String,
+    /// y-coord of c2 (shared secret added to message)
     #[arg(long)]
-    pubkeyy: String,
+    c2y: String,
 }
-
 
 fn main() {
     let p = match env::var("ELGAMAL_PRIVKEY_HOLONYM") {
@@ -67,7 +67,16 @@ fn main() {
     let cli = Cli::parse();
     let res = match &cli.command {
         Commands::Encrypt(e) => Err("not implemented"),
-        Commands::Decrypt(d) => Ok(format!("decrypting {}", d.pubkeyx))
+        Commands::Decrypt(d) => Ok(private_key.decrypt_elgamal(ElGamalEncryption {
+            c1: Point { 
+                x: Fr::from_str(&d.c1x).unwrap(),
+                y: Fr::from_str(&d.c1y).unwrap(),
+            },
+            c2: Point {
+                x: Fr::from_str(&d.c2x).unwrap(),
+                y: Fr::from_str(&d.c2y).unwrap()
+            }
+        }))
     };    
 
     println!("result {:?}", res.unwrap());
