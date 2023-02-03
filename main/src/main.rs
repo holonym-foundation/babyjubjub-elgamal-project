@@ -1,57 +1,74 @@
 
-use clap::{Arg, App};
+use clap::{Subcommand, Args, Parser};
 use std::env;
-use issuer::Issuer;
+// use issuer::Issuer;
+use babyjubjub_rs::{Fr, PrivateKey, ElGamalEncryption, B8, new_key};
+use num_bigint::BigInt;
+
+/// BabyJubJub ElGamal
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Encrypts a point to a public key
+    Encrypt(Encrypt),
+    /// Decrypts a point given the private key in the envrionment variable "ELGAMAL_PRIVKEY_HOLONYM"
+    Decrypt(Decrypt),
+}
+
+#[derive(Args)]
+struct Encrypt {
+    /// x-coord of message
+    #[arg(long)]
+    mx: String,
+    /// y-coord of message
+    #[arg(long)]
+    my: String,
+    /// x-coord of public key
+    #[arg(long)]
+    pubkeyx: String,
+    /// y-coord of message
+    #[arg(long)]
+    pubkeyy: String,
+}
+#[derive(Args)]
+struct Decrypt {
+    /// x-coord of message
+    #[arg(long)]
+    mx: String,
+    /// y-coord of message
+    #[arg(long)]
+    my: String,
+    /// x-coord of public key
+    #[arg(long)]
+    pubkeyx: String,
+    /// y-coord of public key
+    #[arg(long)]
+    pubkeyy: String,
+}
+
+
 fn main() {
-    // private key is 32-byte hex
-    // let iss = issuer::Issuer::from_privkey("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
-    let p = match env::var("HOLONYM_ISSUER_PRIVKEY") {
+    let p = match env::var("ELGAMAL_PRIVKEY_HOLONYM") {
         Ok(privkey) => privkey,
         Err(error) => {
-            panic!("HOLONYM_ISSUER_PRIVKEY does not exist. It should be a 32-byte hex string such as 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef but random")
+            panic!("ELGAMAL_PRIVKEY_HOLONYM does not exist. It should be a 32-byte hex string such as 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef but random")
         }
     };
-    
-    // Set up command line arguments using clap:
-    let matches = App::new("Holonym Issuer")
-        .version("0.0.0")
-        .author("Nanak Nihal Khalsa <nanak@holonym.id>")
-        .about("Issues a Holonym credential")
-        .arg(Arg::with_name("Field 1")
-            .short("1")
-            .long("field1")
-            .takes_value(true)
-            .help("A custom field you can put in the credentials as an issuer. Can be a field element representing the user's phone number, name, or any other attribute. Can also be a hash of many other values if you'd like to fit more than one")
-        )
-        .arg(Arg::with_name("Field 2")
-            .short("2")
-            .long("field2")
-            .takes_value(true)
-            .help("A custom field you can put in the credentials as an issuer. Can be a field element representing the user's phone number, name, or any other attribute. Can also be a hash of many other values if you'd like to fit more than one")
-        )
-        .get_matches();
+    let private_key = PrivateKey::import(
+        hex::decode(p).unwrap(),
+    ).unwrap();
 
-    let field1 = matches.value_of("Field 1").unwrap();
-    let field2 = matches.value_of("Field 2").unwrap();
-    // let matches = App::new("My Test Program")
-    //     .version("0.1.0")
-    //     .author("Hackerman Jones <hckrmnjones@hack.gov>")
-    //     .about("Teaches argument parsing")
-    //     .arg(Arg::with_name("file")
-    //              .short("f")
-    //              .long("file")
-    //              .takes_value(true)
-    //              .help("A cool file"))
-    //     .arg(Arg::with_name("num")
-    //              .short("n")
-    //              .long("number")
-    //              .takes_value(true)
-    //              .help("Five less than your favorite number"))
-    //     .get_matches();
+    let cli = Cli::parse();
+    let res = match &cli.command {
+        Commands::Encrypt(e) => Err("not implemented"),
+        Commands::Decrypt(d) => Ok(format!("decrypting {}", d.pubkeyx))
+    };    
 
-    let iss = Issuer::from_privkey(&p);
-    let sig = iss.issue([field1.to_string(), field2.to_string()])
-    .unwrap();
-    println!("{:?}", serde_json::to_string(&sig).unwrap());
-    
+    println!("result {:?}", res.unwrap());
 }
