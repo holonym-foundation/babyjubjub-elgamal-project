@@ -5,6 +5,7 @@ use std::env;
 // use issuer::Issuer;
 use babyjubjub_rs::{Fr, PrivateKey, ElGamalEncryption, B8, new_key, Point, encrypt_elgamal, Q};
 use num_bigint::{BigInt, ToBigInt, BigUint, RandBigInt};
+use num_traits::cast::FromPrimitive;
 
 /// BabyJubJub ElGamal
 #[derive(Parser)]
@@ -64,15 +65,22 @@ fn main() {
         hex::decode(p).unwrap(),
     ).unwrap();
 
+
+    let nonce = rand::thread_rng().gen_bigint_range(&0.to_bigint().unwrap() , &Q);
+    let some_point = B8.mul_scalar(&BigInt::from_u8(0x69).unwrap());
+    let my_pub = private_key.public();
+    println!("{:?}\n\n encrypted for {:?}\n\n with nonce {:?}\n\n is {:?}\n\n",
+        some_point, my_pub, nonce, encrypt_elgamal(&my_pub, &nonce, &some_point)
+    );
     let cli = Cli::parse();
     let res = match &cli.command {
         Commands::Encrypt(e) => println!("{:?}", encrypt_elgamal(
-            Point {
+            &Point {
                 x: Fr::from_str(&e.pkx).unwrap(),
                 y: Fr::from_str(&e.pky).unwrap()
             },
 
-            rand::thread_rng().gen_bigint_range(&0.to_bigint().unwrap() , &Q), 
+            &rand::thread_rng().gen_bigint_range(&0.to_bigint().unwrap() , &Q), 
             &Point {
                 x: Fr::from_str(&e.mx).unwrap(),
                 y: Fr::from_str(&e.my).unwrap()
