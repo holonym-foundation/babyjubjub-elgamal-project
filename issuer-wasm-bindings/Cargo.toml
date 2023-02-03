@@ -12,7 +12,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 wasm-bindgen = "0.2"
-issuer = { path = "../main"}
+babjubjub-elgamal = { path = "../main"}
 getrandom = { version = "0.2", features = ["js"] }
 # chrono = { version = "0.4.23", features = ["wasmbind"] }
 serde = { version = "1.0.152", features = ["derive"] }
