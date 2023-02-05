@@ -25,7 +25,7 @@ pub fn encrypt_point(msg_x: String, msg_y: String, pub_x: String, pub_y: String,
     let pk = Point::from_xy_strings(pub_x, pub_y);
     let nonce_big: BigInt = BigInt::from_str(&nonce).unwrap();
     let e = encrypt_elgamal(&pk, &nonce_big, &msg);
-    "hey".to_string()// serde_json::to_string(e)
+    serde_json::to_string(&e).unwrap()
 }
 
 // #[wasm_bindgen]
