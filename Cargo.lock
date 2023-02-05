@@ -104,7 +104,7 @@ dependencies = [
  "babyjubjub-rs",
  "bytes",
  "clap 4.1.4",
- "ff_ce",
+ "ff_ce 0.11.0",
  "hex",
  "js-sys",
  "num-bigint 0.4.3",
@@ -123,7 +123,7 @@ dependencies = [
  "blake2",
  "bytes",
  "criterion",
- "ff_ce",
+ "ff_ce 0.11.0",
  "generic-array",
  "hex",
  "lazy_static",
@@ -544,6 +544,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ff_ce"
+version = "0.14.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b538e4231443a5b9c507caee3356f016d832cf7393d2d90f03ea3180d4e3fbc"
+dependencies = [
+ "byteorder",
+ "hex",
+ "rand 0.4.6",
+ "serde",
+]
+
+[[package]]
 name = "ff_derive_ce"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -618,10 +630,12 @@ checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 name = "hello-wasm"
 version = "0.1.0"
 dependencies = [
- "babjubjub-elgamal",
+ "babyjubjub-rs",
  "console_error_panic_hook",
+ "ff_ce 0.14.3",
  "getrandom",
  "js-sys",
+ "num-bigint 0.4.3",
  "serde",
  "serde_json",
  "wasm-bindgen",
@@ -938,7 +952,7 @@ version = "0.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c76e4996e3d9572d8b5cd56f495dda3fb748fd4cd6bdca754270b8b66a9a2dd3"
 dependencies = [
- "ff_ce",
+ "ff_ce 0.11.0",
  "rand 0.4.6",
  "serde_json",
 ]
