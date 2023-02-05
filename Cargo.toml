@@ -2,5 +2,5 @@
 members = [
     "main",
     "babyjubjub-rs",
-    "issuer-wasm-bindings"
+    "wasm-bindings"
 ]
