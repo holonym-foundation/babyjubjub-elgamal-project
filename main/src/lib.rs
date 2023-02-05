@@ -1,6 +1,6 @@
 use num_bigint::{BigInt,Sign};
-use num_traits::Num;
-use babyjubjub_rs::{POSEIDON, Fr, Point, PrivateKey, blh, Signature};
+use num_traits::{Num, ToPrimitive};
+use babyjubjub_rs::{POSEIDON, Fr, Point, PrivateKey, blh, Signature, ElGamalEncryption};
 use rand::{Rng}; 
 use serde::{Serialize};
 use ff::{Field, PrimeField};
@@ -10,144 +10,65 @@ use js_sys::Date;
 #[cfg(not(target_arch = "wasm32"))]
 extern crate time;
 
-pub struct Issuer {
-    pub privkey: PrivateKey,
-    pub pubkey_point: Point,
-    pub address: Fr //Address is poseidon([pubkey_point.x, pubkey_point.y])
-}
-pub struct Credentials {
-    pub address: Fr,
-    pub secret: Fr,
-    pub custom_fields: [Fr; 2],
-    pub iat: Fr, // Timestamp issued at, offset to 1900 instead of standard unix 1970
-    pub scope: Fr // Usually zero
-}
-#[derive(Serialize)]
-pub struct SerializableCredentials {
-    pub address: String,
-    pub secret: String,
-    pub custom_fields: [String; 2],
-    pub iat: String,
-    pub scope: String
+pub struct ThresholdDecryptor {
+    private_key : PrivateKey
 }
 
-#[derive(Serialize)]
-pub struct SignedCredentials {
-    credentials: SerializableCredentials,
-    leaf: String,
-    pubkey: Point,
-    signature: Signature
-}
-
-pub struct HoloTimestamp {
-    pub timestamp: Fr
-}
-
-impl Credentials {
-    pub fn from_fields(address: Fr, custom_fields: [Fr; 2]) -> Result<Credentials, String> {
-        let random_bytes = rand::thread_rng().gen::<[u8; 32]>();
-        let secret_bytes = blh(&random_bytes);
-
-        let secret_fr = Fr::from_str(
-            BigInt::from_bytes_le(Sign::Plus, &secret_bytes).to_string().as_str()
-        ).unwrap();
-        let creds = Credentials {
-            address: address,
-            secret: secret_fr,
-            custom_fields: custom_fields,
-            iat : HoloTimestamp::cur_time().timestamp,
-            scope: Fr::zero()
-        };
-        Ok(creds)
-    }
-
-    pub fn serializable(&self) -> SerializableCredentials {
-        return SerializableCredentials {
-            address : self.address.to_string(),
-            secret : self.secret.to_string(),
-            custom_fields : [self.custom_fields[0].to_string(), self.custom_fields[1].to_string()],
-            iat : self.iat.to_string(),
-            scope : self.scope.to_string(),
+// Returns L_i(0) where L_i(x) is the unique polynomical such that L_i(i) = 1 and L_i(x) = 0 for all x other than i in range 0..n
+pub fn lagrange_basis_at_0(i: u32, n:u32) -> Fr {
+    assert!(i > 0, "i must be greater than 0");
+    assert!(n > 0, "n must be greater than 0");
+    let one = Fr::one();
+    let mut acc = one.clone();
+    let mut j: u32 = 0;
+    let i_ = Fr::from_str(&i.to_string()).unwrap();
+    // since we are evaluating L_i(x) where x=0, can set x to 0 in formula for lagrange basis. Formula becomes becomes product of j / (j-i) for all j not equal to i
+    while j <= n {
+        if j == i {
+            println!("j and i are {} and {} ! continü", j, i);
+            j+=1;
+            continue;
         }
-       
-    }
-
-    // Returns poseidon([issuer address, random secret, custom_fields[0], custom_fields[1], current timestamp as days since 1900, scope (never/seldom used; set to 0 by default)])
-    pub fn to_leaf(&self) -> Result<Fr, String> {
-        POSEIDON.hash(vec![
-            self.address,
-            self.secret, 
-            self.custom_fields[0], 
-            self.custom_fields[1], 
-            self.iat,
-            self.scope
-        ])
-    }
-}
-
-impl HoloTimestamp {
-    // pub fn from_timespec(t: Timespec) -> HoloTimestamp {
-    //     let sec1900 = t.sec + 2208988800; // 2208988800000 is 70 year offset; Unix timestamps below 1970 are negative and we want to allow from 1900
-    //     return HoloTimestamp { timestamp : Fr::from_str(&sec1900.to_string()).unwrap() }
-    // }
-
-    pub fn from_timestamp_sec(timestamp_in_seconds: i64) -> HoloTimestamp {
-        let adjusted = timestamp_in_seconds + 2208988800; // 2208988800000 is 70 year offset; Unix timestamps below 1970 are negative and we want to allow from 1900
-        HoloTimestamp { timestamp: Fr::from_str(&adjusted.to_string()).unwrap() }
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn cur_time() -> HoloTimestamp {
-        return Self::from_timestamp_sec(time::get_time().sec);
-    }
-    #[cfg(target_arch = "wasm32")]
-    pub fn cur_time() -> HoloTimestamp {
-        return Self::from_timestamp_sec((Date::now() as i64) / 1000);
-    }
-}
-
-impl Issuer {
-    pub fn from_privkey(privkey: &str) -> Issuer{
-        let prv = PrivateKey::import(
-            hex::decode(privkey)
-            .unwrap(),
-        ).unwrap();
-
-        let pk = prv.public();
+        println!("j is {}", j);
+        let j_: Fr = Fr::from_str(&j.to_string()).unwrap();
+        println!("j_ is {:?}", j_);
+        // numerator = j, demoninator = j - i
+        let mut denominator = j_.clone();
+        denominator.sub_assign(&i_);
         
-        return Issuer {
-            privkey: prv,
-            pubkey_point: Point { x: pk.x, y: pk.y},
-            address: POSEIDON.hash(vec![pk.x, pk.y]).unwrap()
-        };
+        acc.mul_assign(&j_);
+        println!("denominator {:?}", denominator);
+        println!("inverse {:?}", denominator.inverse().unwrap());
+        acc.mul_assign(&denominator.inverse().unwrap());
+
+        j+=1;
     }
 
-    pub fn sign_credentials(&self, creds: Credentials) -> Result<SignedCredentials, String> {
-        let leaf = creds.to_leaf().unwrap();
-        // Convert Fr to BigInt. TODO: find more efficient way of converting the Fr to a BigInt
-        // Convert to chars and remove 0x prefix
-        let leaf_str = leaf.into_repr().to_string();
-        let mut as_chars = leaf_str.chars();
-        as_chars.next();
-        as_chars.next();
-        // Now, convert as_chars to BigInt
-        let as_bigint = BigInt::from_str_radix(as_chars.as_str(), 16).unwrap();
-        let signature = self.privkey.sign(as_bigint).unwrap();
-        Ok(
-            SignedCredentials {
-                credentials: creds.serializable(),
-                leaf: leaf.to_string(),
-                pubkey: Point { x: self.pubkey_point.x, y: self.pubkey_point.y },
-                signature: signature
-            }
-        )
+    acc
+}
+
+pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) {
+    assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
+}
+
+impl ThresholdDecryptor {
+    pub fn pubkey(&self) -> Point {
+        self.private_key.public()
     }
-    
-    // creates credentials from custom fields, and returns credentials + leaf + signature
-    pub fn issue(&self, custom_fields: [String; 2]) -> Result<SignedCredentials, String> {
-        let cf = [Fr::from_str(&custom_fields[0]).unwrap(), Fr::from_str(&custom_fields[1]).unwrap()];
-        let c = Credentials::from_fields(self.address, cf).unwrap();
-        self.sign_credentials(c)
+    pub fn decryption_share(msg: &Point) {
+        let m = msg.clone();
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use num_traits::ToPrimitive;
+    use crate::lagrange_basis_at_0;
+    #[test]
+    fn test_lagrange_basis_at_0() {
+        // test for reconstructing y-intercept of line with points (1,5) and (2,6). y-intercept is
+        let n: u32 = 2; // n  =  number of shares  =  degree of polynomial + 1
+        let l1 = lagrange_basis_at_0(1 as u32, n);
+        let l2 = lagrange_basis_at_0(2 as u32, n);
+    }
+}
