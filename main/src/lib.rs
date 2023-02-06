@@ -73,10 +73,13 @@ impl Node {
         .collect::<Vec<(usize, BigInt)>>()
     }
 
-    // /// other_keygens_for_me = the i'th privkey share from every other node's 
-    // pub fn set_decryption_share(&self, other_keygens_for_me: Vec<u) {
-       
-    // }
+    /// other_keygens_for_me = the idx'th privkey share from every other node's privkey_shares() result (one-indexed!)
+    pub fn set_decryption_share(&mut self, other_keygens_for_me: Vec<BigInt>) {
+        let shared_polynomial_at_my_idx: BigInt = other_keygens_for_me.iter().sum();
+        self.decryption_key_share = Some(
+            PrivateKeyShare { share: shared_polynomial_at_my_idx }
+        );
+    }
 
     pub fn pubkey_share(&self) -> Point {
         B8.mul_scalar(&self.keygen_polynomial_at_0)
