@@ -1,6 +1,8 @@
+use std::str::FromStr;
+
 use num_bigint::{BigInt,Sign};
 use num_traits::{Num, ToPrimitive};
-use babyjubjub_rs::{POSEIDON, Fr, Point, PrivateKey, blh, Signature, ElGamalEncryption};
+use babyjubjub_rs::{POSEIDON, Fr, Point, PrivateKey, blh, Signature, ElGamalEncryption, B8, ToDecimalString, FrToBigInt};
 use rand::{Rng}; 
 use serde::{Serialize};
 use ff::{Field, PrimeField};
@@ -9,10 +11,6 @@ use time::Timespec;
 use js_sys::Date;
 #[cfg(not(target_arch = "wasm32"))]
 extern crate time;
-
-pub struct ThresholdDecryptor {
-    private_key : PrivateKey
-}
 
 // Returns L_i(0) where L_i(x) is the unique polynomical such that L_i(i) = 1 and L_i(x) = 0 for all x other than i in range 0..n
 pub fn lagrange_basis_at_0(i: u32, n:u32) -> Fr {
@@ -49,18 +47,65 @@ pub fn lagrange_basis_at_0(i: u32, n:u32) -> Fr {
     acc
 }
 
-pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) {
-    assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
+// pub struct ThresholdDecryptor {
+//     key_share : PrivateKeyShare
+// }
+
+// impl ThresholdDecryptor {
+//     // Return secret share * the base point
+//     pub fn public(&self) -> Point {
+//         self.key_share.public()
+//     }
+//     pub fn decryption_share(&self, msg: &Point) {
+//         // REMINDER NOT TO CONFLATE SCALAR_KEY WITH KEY THE SHARE IS INITIALIZED WITH. THERE SHOULD BE A NEW INITIALIZE FUCNTION THAT LETS YOU INIT FROM A SCALAR KEY
+//         msg.mul_scalar(self.key_share.scalar_key());
+//     }
+// }
+
+pub struct PrivateKeyShare {
+    share: BigInt,
 }
 
-impl ThresholdDecryptor {
-    pub fn pubkey(&self) -> Point {
-        self.private_key.public()
+
+impl PrivateKeyShare {
+    pub fn from_share(b: BigInt) -> PrivateKeyShare {
+        PrivateKeyShare { share: b }
     }
-    pub fn decryption_share(msg: &Point) {
-        let m = msg.clone();
+
+   
+    pub fn public(&self) -> Point {
+        B8.mul_scalar(&self.share)
     }
+
+    pub fn partial_decrypt(&self, encrypted_point: ElGamalEncryption) -> Point {
+        // Make sure inputs aren't bad (i imagine this check could be skipped for performance reasons, but it seems a sanity check here would be helpful)
+        assert!(encrypted_point.c1.on_curve() && encrypted_point.c2.on_curve());
+        encrypted_point.c1.mul_scalar(&self.share)
+    }
+
 }
+
+pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) -> Point {
+    assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
+    let reconstructed_bases_at_0 = shares.iter().enumerate().map(
+        // Now we have a mapping of index i to decryption share s_i
+        // Multiply the ith Lagrange basis at 0, L_i(0), by s_i 
+        |(i, s_i)| 
+        s_i.mul_scalar(
+            &lagrange_basis_at_0(i as u32, num_shares_needed as u32).to_bigint()
+        )
+    );
+
+    // Sum all the reconstructed bases at 0 to get the y-intercept
+    let reconstructed_polynomial_at_0 = reconstructed_bases_at_0.reduce(
+        |a,b| a.add(&b)
+    ).unwrap();
+    
+    // The Diffie-Hellman "shared secret" in ElGamal system coincides with reconstructed "shared secret" at y-intercept, even though these are shared in different ways!
+    encrypted.c2.add(&reconstructed_polynomial_at_0.neg())
+}
+
+
 
 #[cfg(test)]
 mod tests {
