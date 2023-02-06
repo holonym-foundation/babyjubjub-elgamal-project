@@ -1,16 +1,7 @@
-use std::str::FromStr;
-
-use num_bigint::{BigInt,Sign};
-use num_traits::{Num, ToPrimitive};
-use babyjubjub_rs::{POSEIDON, Fr, Point, PrivateKey, blh, Signature, ElGamalEncryption, B8, ToDecimalString, FrToBigInt};
-use rand::{Rng}; 
-use serde::{Serialize};
+use num_bigint::{BigInt};
+use num_traits::{ToPrimitive};
+use babyjubjub_rs::{Fr, Point, ElGamalEncryption, B8, FrToBigInt};
 use ff::{Field, PrimeField};
-use time::Timespec;
-#[cfg(target_arch = "wasm32")]
-use js_sys::Date;
-#[cfg(not(target_arch = "wasm32"))]
-extern crate time;
 
 // Returns L_i(0) where L_i(x) is the unique polynomical such that L_i(i) = 1 and L_i(x) = 0 for all x other than i in range 0..n
 pub fn lagrange_basis_at_0(i: u32, n:u32) -> Fr {
@@ -27,40 +18,20 @@ pub fn lagrange_basis_at_0(i: u32, n:u32) -> Fr {
             j+=1;
             continue;
         }
-        println!("j is {}", j);
         let j_: Fr = Fr::from_str(&j.to_string()).unwrap();
-        println!("j_ is {:?}", j_);
         // numerator = j, demoninator = j - i
         let mut denominator = j_.clone();
         denominator.sub_assign(&i_);
         
-        println!("acc is {:?}", acc);
         acc.mul_assign(&j_);
 
-        println!("denominator {:?}", denominator);
-        println!("inverse {:?}", denominator.inverse().unwrap());
         acc.mul_assign(&denominator.inverse().unwrap());
-        println!("acc is now {:?}", acc);
+
         j+=1;
     }
 
     acc
 }
-
-// pub struct ThresholdDecryptor {
-//     key_share : PrivateKeyShare
-// }
-
-// impl ThresholdDecryptor {
-//     // Return secret share * the base point
-//     pub fn public(&self) -> Point {
-//         self.key_share.public()
-//     }
-//     pub fn decryption_share(&self, msg: &Point) {
-//         // REMINDER NOT TO CONFLATE SCALAR_KEY WITH KEY THE SHARE IS INITIALIZED WITH. THERE SHOULD BE A NEW INITIALIZE FUCNTION THAT LETS YOU INIT FROM A SCALAR KEY
-//         msg.mul_scalar(self.key_share.scalar_key());
-//     }
-// }
 
 pub struct PrivateKeyShare {
     share: BigInt,
@@ -68,11 +39,10 @@ pub struct PrivateKeyShare {
 
 
 impl PrivateKeyShare {
-    pub fn from_share(b: BigInt) -> PrivateKeyShare {
+    pub fn from_bigint(b: BigInt) -> PrivateKeyShare {
         PrivateKeyShare { share: b }
     }
 
-   
     pub fn public(&self) -> Point {
         B8.mul_scalar(&self.share)
     }
