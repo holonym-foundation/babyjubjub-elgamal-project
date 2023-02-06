@@ -14,7 +14,6 @@ pub fn lagrange_basis_at_0(i: u32, n:u32) -> Fr {
     // since we are evaluating L_i(x) where x=0, can set x to 0 in formula for lagrange basis. Formula becomes becomes product of j / (j-i) for all j not equal to i
     while j <= n {
         if j == i {
-            println!("j and i are {} and {} ! continü", j, i);
             j+=1;
             continue;
         }
@@ -87,8 +86,6 @@ mod tests {
         let l1 = lagrange_basis_at_0(1 as u32, n);
         let l2 = lagrange_basis_at_0(2 as u32, n);
 
-        println!("\n\nl1 l2\n\n{:?}\n{:?}\n\n", l1, l2);
-
         let y1 = Fr::from_str("5").unwrap();
         let y2 = Fr::from_str("6").unwrap();
         // calculate l1y1+l2y2
@@ -114,7 +111,6 @@ mod tests {
         let l2 = lagrange_basis_at_0(2 as u32, n);
         let l3 = lagrange_basis_at_0(3 as u32, n);
 
-        println!("\n\nl1 l2 l3\n\n{:?}\n{:?}\n{:?}\n\n", l1, l2, l3);
         let y1 = Fr::from_str("226").unwrap();
         let y2 = Fr::from_str("335").unwrap();
         let y3 = Fr::from_str("450").unwrap();
