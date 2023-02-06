@@ -40,6 +40,37 @@ impl Polynomial {
     }
 }
 
+
+// Returns L_i(0) where L_i(x) is the unique polynomical such that L_i(i) = 1 and L_i(x) = 0 for all x other than i in range 0..n
+pub fn lagrange_basis_at_0(i: u32, n:u32) -> Fr {
+    assert!(i > 0, "i must be greater than 0");
+    assert!(n > 0, "n must be greater than 0");
+    let one = Fr::one();
+    let mut acc = one.clone();
+    let mut j: u32 = 1;
+    let i_ = Fr::from_str(&i.to_string()).unwrap();
+    // since we are evaluating L_i(x) where x=0, can set x to 0 in formula for lagrange basis. Formula becomes becomes product of j / (j-i) for all j not equal to i
+    while j <= n {
+        if j == i {
+            j+=1;
+            continue;
+        }
+        let j_: Fr = Fr::from_str(&j.to_string()).unwrap();
+        // numerator = j, demoninator = j - i
+        let mut denominator = j_.clone();
+        denominator.sub_assign(&i_);
+        
+        acc.mul_assign(&j_);
+
+        acc.mul_assign(&denominator.inverse().unwrap());
+
+        j+=1;
+    }
+
+    acc
+}
+
+
 #[cfg(test)]
 mod tests {
     use std::{ops::Mul, str::FromStr};
@@ -115,37 +146,4 @@ mod tests {
         
     }
 
-    #[test]
-    fn test_keygen() {
-
-    }
-}
-
-// Returns L_i(0) where L_i(x) is the unique polynomical such that L_i(i) = 1 and L_i(x) = 0 for all x other than i in range 0..n
-pub fn lagrange_basis_at_0(i: u32, n:u32) -> Fr {
-    assert!(i > 0, "i must be greater than 0");
-    assert!(n > 0, "n must be greater than 0");
-    let one = Fr::one();
-    let mut acc = one.clone();
-    let mut j: u32 = 1;
-    let i_ = Fr::from_str(&i.to_string()).unwrap();
-    // since we are evaluating L_i(x) where x=0, can set x to 0 in formula for lagrange basis. Formula becomes becomes product of j / (j-i) for all j not equal to i
-    while j <= n {
-        if j == i {
-            j+=1;
-            continue;
-        }
-        let j_: Fr = Fr::from_str(&j.to_string()).unwrap();
-        // numerator = j, demoninator = j - i
-        let mut denominator = j_.clone();
-        denominator.sub_assign(&i_);
-        
-        acc.mul_assign(&j_);
-
-        acc.mul_assign(&denominator.inverse().unwrap());
-
-        j+=1;
-    }
-
-    acc
 }
