@@ -20,7 +20,7 @@ impl Polynomial {
     }
 
     // Creates a random polynomial with elements in Fr
-    pub fn random_polynomial_fr(degree: u32) -> Polynomial {
+    pub fn random_polynomial_fr(degree: usize) -> Polynomial {
         let coeffs = (0..degree).map(
             |_| rand::thread_rng().gen_bigint_range(&BigInt::from_u8(0u8).unwrap() , &Q)
         ).collect::<Vec<BigInt>>();
@@ -32,6 +32,11 @@ impl Polynomial {
         self.coefficients.iter().enumerate().map(
             |(i, coeff)| x.pow(i as u32).mul(coeff)
         ).sum::<BigInt>()
+    }
+
+    /// Degree of the polynomial
+    pub fn deg(&self) -> usize {
+        self.coefficients.len() - 1
     }
 }
 
