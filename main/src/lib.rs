@@ -52,8 +52,8 @@ C1 is r*B, where r is a random nonce used as to make the shared secret.
 C2 is m+s, where m is the message to be encrypted and s is the shared secret.
 The shared secret is calculated the standard Diffie-Hellman way: p*r*B, where p is the private key of whoever will decrypt it.
 
-Obviously, this doesn't quite work in the threshold method without some modifications -- it relies on a private key, a, that no party knows. 
-Here, A(0) is used for a. The secret key is the evaluation of the shared, unknown, polynomial at 0.
+Obviously, this doesn't quite work in the threshold method without some modifications -- it relies on a private key, p, that no party knows. 
+Here, A(0) is used for p. The secret key is the evaluation of the shared, unknown, polynomial at 0.
 
 To decrypt it, node i sends decryption share A(i)*C1. Note A(i) is a scalar despite A being uppercase
 
@@ -65,7 +65,7 @@ The Lagrange bases for n nodes are polynomials L_i for i=1..n such that
 
 A polynomial can be represented as a sum of unique Lagrange bases. Therefore, A can be represented as a weighted sum ∑w*L_i for i=1..n where weight w=A(i)
 
-Note that A(0) in terms of Lagrange bases? It is ∑L_i(0)*A(i) for i=1..n
+What's A(0) in terms of Lagrange bases? It is ∑L_i(0)*A(i) for i=1..n
 Anyone can compute L_i(0)  easily for any node's i. This is done in a polynomial.rs function
 `lagrange_basis_at_0`.
 
