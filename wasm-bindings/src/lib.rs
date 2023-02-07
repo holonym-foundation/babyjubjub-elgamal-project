@@ -51,3 +51,14 @@ pub fn decryptPoint(privkey: String, c1x: String, c1y: String, c2x: String, c2y:
     let d = prv.decrypt_elgamal(e);
     serde_json::to_string(&d).unwrap()
 }
+
+#[wasm_bindgen]
+pub fn pubkey(privkey: String) -> String {
+    let prv = PrivateKey::import(
+        hex::decode(privkey)
+        .unwrap(),
+    ).unwrap();
+
+    serde_json::to_string(&prv.public()).unwrap()
+
+}
