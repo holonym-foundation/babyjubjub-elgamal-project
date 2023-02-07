@@ -213,11 +213,7 @@ pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_need
 
 #[cfg(test)]
 mod tests {
-    use std::{ops::Mul, str::FromStr};
-    use num_bigint::ToBigInt;
     use super::*;
-
-    #[test]
 
     #[test]
     fn test_keygen() {
@@ -237,4 +233,5 @@ mod tests {
         assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)));
         // node1.pubkey_share(num_nodes)
     }
+
 }
