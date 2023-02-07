@@ -193,11 +193,20 @@ impl Node {
 
 
 
-/* Functions to help encrypt to nodes and decrypt from nodes */
-
-pub fn calculate_pubkey(pubkey_shares: Vec<Point>) -> Point {
-    // TODO: implement this. just add all the pubkey shares
-    Point {x:Fr::zero(),y:Fr::zero()}
+/* Functions to help encrypt to nodes and decrypt from nodes. Adds their pubkeys shares */
+pub fn calculate_pubkey(pubkey_shares: Vec<Point>) -> Option<Point> {
+    let mut acc: Option<Point> = None;
+    for point in pubkey_shares.iter() {
+        match acc {
+            None => acc = Some(point.clone()),
+            Some(_) => acc = Some(acc.unwrap().add(point))
+        }
+    }
+    acc
+    // pubkey_shares.iter().reduce(
+    //     |share1, share2| share1.add(&share2)
+    // )
+    // .unwrap()
 }
 pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) -> Point {
     assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
@@ -232,15 +241,11 @@ mod tests {
         let node1 = Node::init_rnd(1,2);
         let node2 = Node::init_rnd(2,2);
 
-        // see what public key they all create: 
-        let mut shared_pubkey = node1.pubkey_share()
-                                        .add(
-                                        &node2
-                                        .pubkey_share()
-        );
-
+        let shared_pubkey = calculate_pubkey(
+            vec![node1.pubkey_share(), node2.pubkey_share()]
+        ).unwrap();
         // since this test can access private variables, lets see whether the pubkey is correct:
-        let secret_key_nobody_knows = node1.keygen_polynomial_at_0 + node2.keygen_polynomial_at_0;
+        let secret_key_nobody_knows = node1.keygen_polynomial_at_0 + node2.keygen_polynomial_at_0 +;
         
         assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)));
         // node1.pubkey_share(num_nodes)
@@ -280,7 +285,6 @@ mod tests {
             &7654321.to_bigint().unwrap(), 
             &some_msg
         );
-        let dec
     }
 
 }
