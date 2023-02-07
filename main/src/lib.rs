@@ -223,6 +223,18 @@ mod tests {
     fn test_keygen() {
         let node1 = Node::init_rnd(1,2);
         let node2 = Node::init_rnd(2,2);
+
+        // see what public key they all create: 
+        let mut shared_pubkey = node1.pubkey_share()
+                                        .add(
+                                        &node2
+                                        .pubkey_share()
+        );
+
+        // since this test can access private variables, lets see whether the pubkey is correct:
+        let secret_key_nobody_knows = node1.keygen_polynomial_at_0 + node2.keygen_polynomial_at_0;
+        
+        assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)));
         // node1.pubkey_share(num_nodes)
     }
 }
