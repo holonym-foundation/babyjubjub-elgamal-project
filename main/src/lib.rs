@@ -116,8 +116,8 @@ impl PrivateKeyShare {
 pub struct Node {
     /// which number node is it. Starts at 1, not 0, as node 0 doesn't exist. If it did, it would know the secret polynomial evaluated at 0, which is the secret key
     idx: usize, 
-    /// which degree its polynomials will have
-    degree: usize, 
+    /// how many nodes there will be total, so that this node knows what degree of polynomial it can decrypt
+    num_nodes: usize, 
     /// polynomial used to generate the distributed key
     keygen_polynomial: Polynomial,
     /// `keygen_polynomial`'s evaluation at 0 (used to generate the distributed key)
@@ -126,18 +126,24 @@ pub struct Node {
     decryption_key_share: Option<PrivateKeyShare>
 }
 
+// Stores a secret number designated for a particular node
+pub struct KeygenHelper {
+    for_node: usize,
+    value: BigInt
+}
+
 impl Node {
     /// Creates a Node using a random keygen polynomial
     /// degree is degree of the polynomial
-    pub fn init_rnd(idx: usize, degree: usize) -> Node {
-        assert!(idx>0 && idx<=degree+1, "invalid node index {}", idx);
-        let kp = Polynomial::random_polynomial_fr(degree);
+    pub fn init_rnd(idx: usize, num_nodes: usize) -> Node {
+        assert!(idx>0 && idx<=num_nodes, "invalid node index {}", idx);
+        let kp = Polynomial::random_polynomial_fr(num_nodes-1);
         let at_zero = kp.eval(
             &BigInt::from_u8(0).unwrap()
         );
         Node {
             idx: idx,
-            degree: degree,
+            num_nodes: num_nodes,
             keygen_polynomial: kp,
             keygen_polynomial_at_0: at_zero,
             decryption_key_share: None
@@ -151,19 +157,22 @@ impl Node {
         );
         Node {
             idx: idx,
-            degree: polynomial.deg(),
+            num_nodes: polynomial.deg() + 1,
             keygen_polynomial: polynomial,
             keygen_polynomial_at_0: at_zero,
             decryption_key_share: None
         }
     }
     /// num_nodes = how many nodes it needs to share its polynomial evaluations with. Note: all nodes must do this and give result to all other nodes
-    pub fn keygen_step1(&self, num_nodes: usize) -> Vec<(usize, BigInt)> {
-        (1..num_nodes).map(
-            |i| (i, self.keygen_polynomial.eval(&BigInt::from_usize(i).unwrap()))
+    pub fn keygen_step1(&self, num_nodes: usize) -> Vec<KeygenHelper> {
+        (0..num_nodes).map(
+            |i| KeygenHelper {
+                for_node: i+1, // i+1 since nodes are indexed at 1
+                value: self.keygen_polynomial.eval(&BigInt::from_usize(i).unwrap())
+            } 
         )
 
-        .collect::<Vec<(usize, BigInt)>>()
+        .collect::<Vec<KeygenHelper>>()
     }
 
     /// other_keygens_for_me = the idx'th privkey share from every other node's privkey_shares() result (one-indexed!)
@@ -216,7 +225,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_keygen() {
+    fn test_pubkey() {
         let node1 = Node::init_rnd(1,2);
         let node2 = Node::init_rnd(2,2);
 
@@ -232,6 +241,30 @@ mod tests {
         
         assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)));
         // node1.pubkey_share(num_nodes)
+    }
+
+    // TODO: separate this into smaller unit tests
+    #[test]
+    fn test_keygen_encrypt_decrypt() {
+        let mut node1 = Node::init_rnd(1,3);
+        let mut node2 = Node::init_rnd(2,3);
+        let mut node3 = Node::init_rnd(3,3);
+        
+        // simulate the nodes sharing one of their evaluations with the other nodes 
+        let from_node1 = node1.keygen_step1(3);
+        let from_node2 = node2.keygen_step1(3);
+        let from_node3 = node3.keygen_step1(3);
+        // Remember to subtract one from the index to conver it to zero-index!
+        let to_node1 = vec![from_node1[0].value.clone(), from_node2[0].value.clone(), from_node3[0].value.clone()];
+        let to_node2 = vec![from_node1[1].value.clone(), from_node2[1].value.clone(), from_node3[1].value.clone()];
+        let to_node3 = vec![from_node1[2].value.clone(), from_node2[2].value.clone(), from_node3[2].value.clone()];
+        // and finally each node reconstructs their part of the secret
+        node1.set_decryption_share(to_node1);
+        node2.set_decryption_share(to_node2);
+        node3.set_decryption_share(to_node3);
+
+
+        // assert!()
     }
 
 }
