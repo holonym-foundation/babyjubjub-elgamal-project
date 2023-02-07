@@ -222,7 +222,7 @@ pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_need
         // Multiply the ith Lagrange basis at 0, L_i(0), by s_i 
         |(i, s_i)| 
         s_i.mul_scalar(
-            &lagrange_basis_at_0(i as u32, num_shares_needed as u32).to_bigint()
+            &lagrange_basis_at_0((i+1) as u32, num_shares_needed as u32).to_bigint()
         )
     );
 
@@ -259,6 +259,56 @@ mod tests {
         assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)));
         // node1.pubkey_share(num_nodes)
     }
+    // Check the secret can indeed be reconstructed from the shares (this won't happen if the nodes follow protocol, but should be tested that it *can* happen, because if it can't happen, the key was generated incorrectly)
+    #[test]
+    fn test_secret_reconstruction() {
+        let mut nodes = vec![
+            Node::init_rnd(1,3),
+            Node::init_rnd(2,3),
+            Node::init_rnd(3,3),
+
+        ];
+        
+        // sum their evaluations at 0 to get the secret key
+        let secret_key_nobody_knows: BigInt = nodes.iter().map(
+            |node| node.keygen_polynomial_at_0.clone()
+        ).sum();
+
+        // do keygen process
+        let keygen_helpers: Vec<Vec<KeygenHelper>> = nodes.iter().map(|node| node.keygen_step1(3)).collect();
+
+        let node1_inputs: Vec<BigInt> = keygen_helpers.iter().map(
+            |outputs| outputs[0].value.clone()
+        ).collect();
+        let node2_inputs: Vec<BigInt> = keygen_helpers.iter().map(
+            |outputs| outputs[1].value.clone()
+        ).collect();
+        let node3_inputs: Vec<BigInt> = keygen_helpers.iter().map(
+            |outputs| outputs[2].value.clone()
+        ).collect();
+
+        nodes[0].set_keyshare(node1_inputs); 
+        nodes[1].set_keyshare(node2_inputs); 
+        nodes[2].set_keyshare(node3_inputs); 
+
+        let shares: Vec<BigInt> = nodes.iter().map(
+            |node| node.keyshare.as_ref().unwrap().share.clone()
+        ).collect();
+
+        let lagrange_bases_at_0: Vec<Fr> = [1,2,3].iter().map(
+            |i| lagrange_basis_at_0(*i, 3)
+        ).collect();
+
+        // Reconstruct polynomial as a linear combination of shares * bases
+        let reconstructed_polynomial_at_0: BigInt = shares.iter()
+        .zip(lagrange_bases_at_0)
+        .map(
+            | (share, basis) |   share * basis.to_bigint()
+        ).sum();
+
+        assert_eq!(reconstructed_polynomial_at_0, secret_key_nobody_knows);
+
+    }
 
     // TODO: separate this into smaller unit tests
     #[test]
@@ -280,21 +330,34 @@ mod tests {
         node2.set_keyshare(to_node2);
         node3.set_keyshare(to_node3);
 
-        // Try encrypting a message and see if decryption works
+        // Try encrypting a message
         let some_msg = B8.mul_scalar(&123456789.to_bigint().unwrap());
         let shared_pubkey = calculate_pubkey(
-            vec![node1.pubkey_share(), node2.pubkey_share()]
+            vec![node1.pubkey_share(), node2.pubkey_share(), node3.pubkey_share()]
         ).unwrap();
-        let encrypted = encrypt_elgamal(
-            &shared_pubkey, 
-            &7654321.to_bigint().unwrap(), 
-            &some_msg
-        );
+        let nonce = &7654321.to_bigint().unwrap();
+
+        // Check C2 was computed correctly
+        let encrypted = encrypt_elgamal(&shared_pubkey, nonce, &some_msg);
+        // let secret_key_nobody_knows = &node1.keygen_polynomial_at_0 + &node2.keygen_polynomial_at_0 + &node3.keygen_polynomial_at_0;     
+
+        // // Why is this wrong?
+        // assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)));
+
+        // assert!(encrypted.c2.equals(
+        //     some_msg.add(
+        //         &B8.mul_scalar(&secret_key_nobody_knows).mul_scalar(nonce)
+        //     )
+        // ));
+        
         
         let d1 = node1.partial_decrypt(&encrypted.c1);
         let d2 = node2.partial_decrypt(&encrypted.c1);
         let d3 = node3.partial_decrypt(&encrypted.c1);
+
         let decrypted = decrypt(encrypted, vec![d1,d2,d3], 3);
+        println!("some_msg {:?}", some_msg);
+        println!("decrypted {:?}", decrypted);
         assert!(decrypted.equals(some_msg));
 
     }
