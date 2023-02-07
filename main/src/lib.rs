@@ -72,7 +72,7 @@ Anyone can compute L_i(0)  easily for any node's i. This is done in a polynomial
 
 These components can be tied together to decrypt the message by giving decryption shares d_i:
 Node i computes d_i via:
-multiplying C1 by their decryption key to get decryption share A(i)*C1
+multiplying C1 by their keyshare to get decryption share A(i)*C1
 
 Once enough d_i values are learned, one can recover the shared secret. Recall the Diffie-Hellman
 shared secret is p*r*B, where p is A(0), the private key of the decryptor. And recall
@@ -103,10 +103,11 @@ impl PrivateKeyShare {
         PrivateKeyShare { share: b }
     }
 
-    pub fn partial_decrypt(&self, encrypted_point: ElGamalEncryption) -> Point {
+    /// C1 is the first value of the (C1, C2) ElGamal encryption result
+    pub fn partial_decrypt(&self, c1: &Point) -> Point {
         // Make sure inputs aren't bad (i imagine this check could be skipped for performance reasons, but it seems a sanity check here would be helpful)
-        assert!(encrypted_point.c1.on_curve() && encrypted_point.c2.on_curve());
-        encrypted_point.c1.mul_scalar(&self.share)
+        assert!(c1.on_curve());
+        c1.mul_scalar(&self.share)
     }
 
 }
@@ -123,7 +124,7 @@ pub struct Node {
     /// `keygen_polynomial`'s evaluation at 0 (used to generate the distributed key)
     keygen_polynomial_at_0: BigInt,
     /// share of the decryption key
-    decryption_key_share: Option<PrivateKeyShare>
+    keyshare: Option<PrivateKeyShare>
 }
 
 // Stores a secret number designated for a particular node
@@ -146,7 +147,7 @@ impl Node {
             num_nodes: num_nodes,
             keygen_polynomial: kp,
             keygen_polynomial_at_0: at_zero,
-            decryption_key_share: None
+            keyshare: None
         }
     }
     /// Creates a Node using a given keygen Polynomial
@@ -160,7 +161,7 @@ impl Node {
             num_nodes: polynomial.deg() + 1,
             keygen_polynomial: polynomial,
             keygen_polynomial_at_0: at_zero,
-            decryption_key_share: None
+            keyshare: None
         }
     }
     /// num_nodes = how many nodes it needs to share its polynomial evaluations with. Note: all nodes must do this and give result to all other nodes
@@ -176,15 +177,21 @@ impl Node {
     }
 
     /// other_keygens_for_me = the idx'th privkey share from every other node's privkey_shares() result (one-indexed!)
-    pub fn set_decryption_share(&mut self, other_keygens_for_me: Vec<BigInt>) {
+    pub fn set_keyshare(&mut self, other_keygens_for_me: Vec<BigInt>) {
         let shared_polynomial_at_my_idx: BigInt = other_keygens_for_me.iter().sum();
-        self.decryption_key_share = Some(
+        self.keyshare = Some(
             PrivateKeyShare { share: shared_polynomial_at_my_idx }
         );
     }
 
     pub fn pubkey_share(&self) -> Point {
         B8.mul_scalar(&self.keygen_polynomial_at_0)
+    }
+
+    /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2)
+    pub fn partial_decrypt(&self, c1: &Point) -> Point {
+        self.keyshare.as_ref().unwrap()
+        .partial_decrypt(c1)
     }
 
     
@@ -231,6 +238,8 @@ pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_need
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use babyjubjub_rs::encrypt_elgamal;
     use num_bigint::ToBigInt;
 
@@ -245,7 +254,7 @@ mod tests {
             vec![node1.pubkey_share(), node2.pubkey_share()]
         ).unwrap();
         // since this test can access private variables, lets see whether the pubkey is correct:
-        let secret_key_nobody_knows = node1.keygen_polynomial_at_0 + node2.keygen_polynomial_at_0 +;
+        let secret_key_nobody_knows = node1.keygen_polynomial_at_0 + node2.keygen_polynomial_at_0;
         
         assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)));
         // node1.pubkey_share(num_nodes)
@@ -267,24 +276,27 @@ mod tests {
         let to_node2 = vec![from_node1[1].value.clone(), from_node2[1].value.clone(), from_node3[1].value.clone()];
         let to_node3 = vec![from_node1[2].value.clone(), from_node2[2].value.clone(), from_node3[2].value.clone()];
         // and finally each node reconstructs their part of the secret
-        node1.set_decryption_share(to_node1);
-        node2.set_decryption_share(to_node2);
-        node3.set_decryption_share(to_node3);
+        node1.set_keyshare(to_node1);
+        node2.set_keyshare(to_node2);
+        node3.set_keyshare(to_node3);
 
-        // Try encrypting a message and see if it's 
+        // Try encrypting a message and see if decryption works
         let some_msg = B8.mul_scalar(&123456789.to_bigint().unwrap());
-        let mut shared_pubkey = node1.pubkey_share()
-                                        .add(
-                        &node2.pubkey_share()
-                                        .add(
-                        &node3.pubkey_share()
-                                        )
-        );
+        let shared_pubkey = calculate_pubkey(
+            vec![node1.pubkey_share(), node2.pubkey_share()]
+        ).unwrap();
         let encrypted = encrypt_elgamal(
             &shared_pubkey, 
             &7654321.to_bigint().unwrap(), 
             &some_msg
         );
+        
+        let d1 = node1.partial_decrypt(&encrypted.c1);
+        let d2 = node2.partial_decrypt(&encrypted.c1);
+        let d3 = node3.partial_decrypt(&encrypted.c1);
+        let decrypted = decrypt(encrypted, vec![d1,d2,d3], 3);
+        assert!(decrypted.equals(some_msg));
+
     }
 
 }
