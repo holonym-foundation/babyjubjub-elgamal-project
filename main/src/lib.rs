@@ -222,6 +222,9 @@ pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_need
 
 #[cfg(test)]
 mod tests {
+    use babyjubjub_rs::encrypt_elgamal;
+    use num_bigint::ToBigInt;
+
     use super::*;
 
     #[test]
@@ -263,8 +266,21 @@ mod tests {
         node2.set_decryption_share(to_node2);
         node3.set_decryption_share(to_node3);
 
-
-        // assert!()
+        // Try encrypting a message and see if it's 
+        let some_msg = B8.mul_scalar(&123456789.to_bigint().unwrap());
+        let mut shared_pubkey = node1.pubkey_share()
+                                        .add(
+                        &node2.pubkey_share()
+                                        .add(
+                        &node3.pubkey_share()
+                                        )
+        );
+        let encrypted = encrypt_elgamal(
+            &shared_pubkey, 
+            &7654321.to_bigint().unwrap(), 
+            &some_msg
+        );
+        let dec
     }
 
 }
