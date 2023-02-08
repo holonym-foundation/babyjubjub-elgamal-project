@@ -38,6 +38,18 @@ impl Polynomial {
     pub fn deg(&self) -> usize {
         self.coefficients.len() - 1
     }
+
+    /// adds to another polynomial of same degree
+    pub fn add_same_deg(&self, other_polynomial: &Polynomial) -> Polynomial {
+        assert_eq!(self.deg(), other_polynomial.deg(), "Currently, only polynomials of same degree are supported");
+        let new_coefs = self.coefficients.iter().zip(
+            other_polynomial.coefficients.clone()
+        ).map(
+            |(a,b)| a + b
+        ).collect();
+        Polynomial { coefficients: new_coefs }
+    }
+
 }
 
 
@@ -144,6 +156,33 @@ mod tests {
         result.add_assign(&part3);
         assert!(result.eq(&Fr::from_str("123").unwrap()));
         
+    }
+
+    #[test]
+    pub fn test_add_same_deg() {
+        let p1 = Polynomial::from_coeffs(
+            vec![
+                100.to_bigint().unwrap(),
+                69.to_bigint().unwrap(),
+                0.to_bigint().unwrap(),
+                7.to_bigint().unwrap(),
+            ]
+        );
+        let p2 = Polynomial::from_coeffs(
+            vec![
+                9.to_bigint().unwrap(),
+                1.to_bigint().unwrap(),
+                5.to_bigint().unwrap(),
+                0.to_bigint().unwrap(),
+            ]
+        );
+        let p3 = p1.add_same_deg(&p2);
+        assert!(
+            (p3.coefficients[0] == 109.to_bigint().unwrap()) &&
+            (p3.coefficients[1] == 70.to_bigint().unwrap()) &&
+            (p3.coefficients[2] == 5.to_bigint().unwrap()) &&
+            (p3.coefficients[3] == 7.to_bigint().unwrap())
+        )
     }
 
 }
