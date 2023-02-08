@@ -177,7 +177,7 @@ impl Node {
     /// The other nodes have to send node i their keygen polynomial at i. These other polynomials are other_keygens_for_me
     /// i isn' 0-indexed; it's 1-indexed.
     pub fn set_keyshare(&mut self, keygen_evals_at_i: &Vec<&KeygenHelper>) {
-        assert!(keygen_evals_at_i.len() == self.total_nodes, "Error setting keyshare: not enough keygen polynomial evaluations at i! One evaluation is needed from *every* node");
+        assert!(keygen_evals_at_i.len() == self.total_nodes, "Error setting keyshare: not enough keygen polynomial evaluations at i! One evaluation is needed from *every* node:  {} evaluations provided but {} are required", keygen_evals_at_i.len(), self.total_nodes);
         let _ = keygen_evals_at_i.iter().for_each(
             |kh| assert!(kh.for_node == self.idx, "Error setting keyshare: recieved an evaluation of a keygen polynomial at some value other than i")
         );
@@ -194,10 +194,17 @@ impl Node {
         B8.mul_scalar(&self.keygen_polynomial_at_0)
     }
 
-    /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2)
-    pub fn partial_decrypt(&self, c1: &Point) -> Point {
+    /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2). Returns secret share * C1
+    pub fn partial_decrypt_(&self, c1: &Point) -> Point {
         self.keyshare.as_ref().unwrap()
         .partial_decrypt(c1)
+    }
+
+    /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2). Returns secret share * my lagrange basis * C1
+    pub fn partial_decrypt(&self, c1: &Point) -> Point {
+        self.partial_decrypt_(c1).mul_scalar(
+            &lagrange_basis_at_0(self.idx as u32, self.threshold_nodes as u32).to_bigint()
+        )
     }
 
     
@@ -221,24 +228,47 @@ pub fn calculate_pubkey(pubkey_shares: Vec<Point>) -> Option<Point> {
     // )
     // .unwrap()
 }
+// pub fn decrypt_(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) -> Point {
+//     assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
+//     let reconstructed_bases_at_0 = shares.iter().enumerate().map(
+//         // Now we have a mapping of index i to decryption share s_i
+//         // Multiply the ith Lagrange basis at 0, L_i(0), by s_i 
+//         |(i, s_i)| 
+//         s_i.mul_scalar(
+//             &lagrange_basis_at_0((i+1) as u32, num_shares_needed as u32).to_bigint()
+//         )
+//     );
+
+//     // Sum all the reconstructed bases at 0 to get the y-intercept
+//     let reconstructed_polynomial_at_0 = reconstructed_bases_at_0.reduce(
+//         |a,b| a.add(&b)
+//     ).unwrap();
+    
+//     // The Diffie-Hellman "shared secret" in ElGamal system coincides with reconstructed "shared secret" at y-intercept, even though these are shared in different ways!
+//     encrypted.c2.add(&reconstructed_polynomial_at_0.neg())
+// }
+
 pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) -> Point {
     assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
-    let reconstructed_bases_at_0 = shares.iter().enumerate().map(
-        // Now we have a mapping of index i to decryption share s_i
-        // Multiply the ith Lagrange basis at 0, L_i(0), by s_i 
-        |(i, s_i)| 
-        s_i.mul_scalar(
-            &lagrange_basis_at_0((i+1) as u32, num_shares_needed as u32).to_bigint()
-        )
-    );
+    // let reconstructed_bases_at_0 = shares.iter().enumerate().map(
+    //     // Now we have a mapping of index i to decryption share s_i
+    //     // Multiply the ith Lagrange basis at 0, L_i(0), by s_i 
+    //     |(i, s_i)| 
+    //     s_i.mul_scalar(
+    //         &lagrange_basis_at_0((i+1) as u32, num_shares_needed as u32).to_bigint()
+    //     )
+    // );
 
-    // Sum all the reconstructed bases at 0 to get the y-intercept
-    let reconstructed_polynomial_at_0 = reconstructed_bases_at_0.reduce(
+    // Sum all the shares to get the Diffie-Hellman-shared secret
+    let reconstructed_dh_secret: Point = shares.iter().map(|x|x.clone()).reduce(
         |a,b| a.add(&b)
     ).unwrap();
+    // let reconstructed_polynomial_at_0 = reconstructed_bases_at_0.reduce(
+    //     |a,b| a.add(&b)
+    // ).unwrap();
     
     // The Diffie-Hellman "shared secret" in ElGamal system coincides with reconstructed "shared secret" at y-intercept, even though these are shared in different ways!
-    encrypted.c2.add(&reconstructed_polynomial_at_0.neg())
+    encrypted.c2.add(&reconstructed_dh_secret.neg())
 }
 
 
@@ -269,9 +299,9 @@ mod tests {
     #[test]
     fn test_secret_reconstruction() {
         let mut nodes = vec![
-            Node::init_rnd(1,3,4),
-            Node::init_rnd(2,3,4),
-            Node::init_rnd(3,3,4),
+            Node::init_rnd(1,3,3),
+            Node::init_rnd(2,3,3),
+            Node::init_rnd(3,3,3),
 
         ];
         
