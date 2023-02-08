@@ -21,7 +21,7 @@ impl Polynomial {
 
     // Creates a random polynomial with elements in Fr
     pub fn random_polynomial_fr(degree: usize) -> Polynomial {
-        let coeffs = (0..degree).map(
+        let coeffs = (0..degree+1).map(
             |_| rand::thread_rng().gen_bigint_range(&BigInt::from_u8(0u8).unwrap() , &Q)
         ).collect::<Vec<BigInt>>();
 
@@ -41,7 +41,10 @@ impl Polynomial {
 
     /// adds to another polynomial of same degree
     pub fn add_same_deg(&self, other_polynomial: &Polynomial) -> Polynomial {
-        assert_eq!(self.deg(), other_polynomial.deg(), "Currently, only polynomials of same degree are supported");
+        assert_eq!(self.deg(), other_polynomial.deg(), 
+            "Error adding polynomials with coefficients {:?} and {:?} Currently, adding polynomials is only supported for polynomials of the same degree",
+            self.coefficients, other_polynomial.coefficients
+        );
         let new_coefs = self.coefficients.iter().zip(
             other_polynomial.coefficients.clone()
         ).map(
@@ -98,6 +101,18 @@ mod tests {
         let polynomial = Polynomial::from_coeffs(coefficients);
         assert!(polynomial.eval(&0.to_bigint().unwrap()) == 123456789.to_bigint().unwrap());
         assert!(polynomial.eval(&123.to_bigint().unwrap()) == BigInt::from_str("14942345687685").unwrap());
+    }
+
+    #[test]
+    fn test_random_polynomial_degree() {
+        let p0 = Polynomial::random_polynomial_fr(0);
+        let p1 = Polynomial::random_polynomial_fr(1);
+        let p2 = Polynomial::random_polynomial_fr(2);
+        let p3 = Polynomial::random_polynomial_fr(3);
+        assert!(p0.coefficients.len() == 1);
+        assert!(p1.coefficients.len() == 2);
+        assert!(p2.coefficients.len() == 3);
+        assert!(p3.coefficients.len() == 4);
     }
 
     #[test]
