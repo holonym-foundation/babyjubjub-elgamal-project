@@ -139,7 +139,7 @@ impl Node {
     /// Creates a Node using a random keygen polynomial
     /// degree is degree of the polynomial
     pub fn init_rnd(idx: usize, threshold_nodes: usize, total_nodes: usize) -> Node {
-        assert!(idx>0 && idx<=total_nodes, "invalid node index {}", idx);
+        assert!(idx>0 && idx<=total_nodes, "node index {} must be greater than 0 and <= total_nodes {}", idx, total_nodes);
         let kp = Polynomial::random_polynomial_fr(threshold_nodes-1);
         let at_zero = kp.eval(
             &BigInt::from_u8(0).unwrap()
@@ -148,7 +148,7 @@ impl Node {
     }
     /// Creates a Node using a given keygen Polynomial
     pub fn init(idx: usize, polynomial: Polynomial, total_nodes: usize) -> Node {
-        assert!(idx>0 && idx<=polynomial.deg(), "invalid node index {}", idx);
+        assert!(idx>0, "node index {} must be > 0", idx);
         let at_zero = polynomial.eval(
             &BigInt::from_u8(0).unwrap()
         );
@@ -176,7 +176,7 @@ impl Node {
     /// sets node i's keyshare of as A(i) where A is the secret polynomial. It does this by summing the evaluation of all the other nodes' keygen polynomials at i. 
     /// The other nodes have to send node i their keygen polynomial at i. These other polynomials are other_keygens_for_me
     /// i isn' 0-indexed; it's 1-indexed.
-    pub fn set_keyshare(&mut self, keygen_evals_at_i: Vec<KeygenHelper>) {
+    pub fn set_keyshare(&mut self, keygen_evals_at_i: &Vec<&KeygenHelper>) {
         assert!(keygen_evals_at_i.len() == self.total_nodes, "Error setting keyshare: not enough keygen polynomial evaluations at i! One evaluation is needed from *every* node");
         let _ = keygen_evals_at_i.iter().for_each(
             |kh| assert!(kh.for_node == self.idx, "Error setting keyshare: recieved an evaluation of a keygen polynomial at some value other than i")
@@ -253,8 +253,8 @@ mod tests {
 
     #[test]
     fn test_pubkey() {
-        let node1 = Node::init_rnd(1,2);
-        let node2 = Node::init_rnd(2,2);
+        let node1 = Node::init_rnd(1,2, 2);
+        let node2 = Node::init_rnd(2,2, 2);
 
         let shared_pubkey = calculate_pubkey(
             vec![node1.pubkey_share(), node2.pubkey_share()]
@@ -269,9 +269,9 @@ mod tests {
     #[test]
     fn test_secret_reconstruction() {
         let mut nodes = vec![
-            Node::init_rnd(1,3),
-            Node::init_rnd(2,3),
-            Node::init_rnd(3,3),
+            Node::init_rnd(1,3,4),
+            Node::init_rnd(2,3,4),
+            Node::init_rnd(3,3,4),
 
         ];
         
@@ -289,19 +289,19 @@ mod tests {
         // do keygen process
         let keygen_helpers: Vec<Vec<KeygenHelper>> = nodes.iter().map(|node| node.keygen_step1(3)).collect();
 
-        let node1_inputs: Vec<BigInt> = keygen_helpers.iter().map(
-            |outputs| outputs[0].value.clone()
+        let node1_inputs: Vec<&KeygenHelper> = keygen_helpers.iter().map(
+            |outputs| &outputs[0]
         ).collect();
-        let node2_inputs: Vec<BigInt> = keygen_helpers.iter().map(
-            |outputs| outputs[1].value.clone()
+        let node2_inputs: Vec<&KeygenHelper> = keygen_helpers.iter().map(
+            |outputs| &outputs[1]
         ).collect();
-        let node3_inputs: Vec<BigInt> = keygen_helpers.iter().map(
-            |outputs| outputs[2].value.clone()
+        let node3_inputs: Vec<&KeygenHelper> = keygen_helpers.iter().map(
+            |outputs| &outputs[2]
         ).collect();
 
-        nodes[0].set_keyshare(node1_inputs); 
-        nodes[1].set_keyshare(node2_inputs); 
-        nodes[2].set_keyshare(node3_inputs); 
+        nodes[0].set_keyshare(&node1_inputs); 
+        nodes[1].set_keyshare(&node2_inputs); 
+        nodes[2].set_keyshare(&node3_inputs); 
 
         let shares: Vec<BigInt> = nodes.iter().map(
             |node| node.keyshare.as_ref().unwrap().share.clone()
@@ -323,24 +323,25 @@ mod tests {
     }
 
     // TODO: separate this into smaller unit tests
+    // TODO: try with more total nodes than threshold nodes
     #[test]
     fn test_keygen_encrypt_decrypt() {
-        let mut node1 = Node::init_rnd(1,3);
-        let mut node2 = Node::init_rnd(2,3);
-        let mut node3 = Node::init_rnd(3,3);
+        let mut node1 = Node::init_rnd(1,3, 3);
+        let mut node2 = Node::init_rnd(2,3, 3);
+        let mut node3 = Node::init_rnd(3,3, 3);
         
         // simulate the nodes sharing one of their evaluations with the other nodes 
         let from_node1 = node1.keygen_step1(3);
         let from_node2 = node2.keygen_step1(3);
         let from_node3 = node3.keygen_step1(3);
         // Remember to subtract one from the index to conver it to zero-index!
-        let to_node1 = vec![from_node1[0].value.clone(), from_node2[0].value.clone(), from_node3[0].value.clone()];
-        let to_node2 = vec![from_node1[1].value.clone(), from_node2[1].value.clone(), from_node3[1].value.clone()];
-        let to_node3 = vec![from_node1[2].value.clone(), from_node2[2].value.clone(), from_node3[2].value.clone()];
+        let to_node1 = vec![&from_node1[0], &from_node2[0], &from_node3[0]];
+        let to_node2 = vec![&from_node1[1], &from_node2[1], &from_node3[1]];
+        let to_node3 = vec![&from_node1[2], &from_node2[2], &from_node3[2]];
         // and finally each node reconstructs their part of the secret
-        node1.set_keyshare(to_node1);
-        node2.set_keyshare(to_node2);
-        node3.set_keyshare(to_node3);
+        node1.set_keyshare(&to_node1);
+        node2.set_keyshare(&to_node2);
+        node3.set_keyshare(&to_node3);
 
         // Try encrypting a message
         let some_msg = B8.mul_scalar(&123456789.to_bigint().unwrap());
