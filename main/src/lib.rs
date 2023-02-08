@@ -117,8 +117,10 @@ impl PrivateKeyShare {
 pub struct Node {
     /// which number node is it. Starts at 1, not 0, as node 0 doesn't exist. If it did, it would know the secret polynomial evaluated at 0, which is the secret key
     idx: usize, 
-    /// how many nodes there will be total, so that this node knows what degree of polynomial it can decrypt
-    num_nodes: usize, 
+    /// how many nodes will be needed to decrypt, so that this node knows what degree of polynomial it can decrypt
+    threshold_nodes: usize, 
+    /// how many nodes there will be total, so that this node knows how many parties to do key generation with
+    total_nodes: usize, 
     /// polynomial used to generate the distributed key
     keygen_polynomial: Polynomial,
     /// `keygen_polynomial`'s evaluation at 0 (used to generate the distributed key)
@@ -136,29 +138,24 @@ pub struct KeygenHelper {
 impl Node {
     /// Creates a Node using a random keygen polynomial
     /// degree is degree of the polynomial
-    pub fn init_rnd(idx: usize, num_nodes: usize) -> Node {
-        assert!(idx>0 && idx<=num_nodes, "invalid node index {}", idx);
-        let kp = Polynomial::random_polynomial_fr(num_nodes-1);
+    pub fn init_rnd(idx: usize, threshold_nodes: usize, total_nodes: usize) -> Node {
+        assert!(idx>0 && idx<=total_nodes, "invalid node index {}", idx);
+        let kp = Polynomial::random_polynomial_fr(threshold_nodes-1);
         let at_zero = kp.eval(
             &BigInt::from_u8(0).unwrap()
         );
-        Node {
-            idx: idx,
-            num_nodes: num_nodes,
-            keygen_polynomial: kp,
-            keygen_polynomial_at_0: at_zero,
-            keyshare: None
-        }
+        Node::init(idx, kp, total_nodes)
     }
     /// Creates a Node using a given keygen Polynomial
-    pub fn init(idx: usize, polynomial: Polynomial) -> Node {
+    pub fn init(idx: usize, polynomial: Polynomial, total_nodes: usize) -> Node {
         assert!(idx>0 && idx<=polynomial.deg(), "invalid node index {}", idx);
         let at_zero = polynomial.eval(
             &BigInt::from_u8(0).unwrap()
         );
         Node {
             idx: idx,
-            num_nodes: polynomial.deg() + 1,
+            threshold_nodes: polynomial.deg() + 1,
+            total_nodes: total_nodes,
             keygen_polynomial: polynomial,
             keygen_polynomial_at_0: at_zero,
             keyshare: None
@@ -176,11 +173,20 @@ impl Node {
         .collect::<Vec<KeygenHelper>>()
     }
 
-    /// other_keygens_for_me = the idx'th privkey share from every other node's privkey_shares() result (one-indexed!)
-    pub fn set_keyshare(&mut self, other_keygens_for_me: Vec<BigInt>) {
-        let shared_polynomial_at_my_idx: BigInt = other_keygens_for_me.iter().sum();
+    /// sets node i's keyshare of as A(i) where A is the secret polynomial. It does this by summing the evaluation of all the other nodes' keygen polynomials at i. 
+    /// The other nodes have to send node i their keygen polynomial at i. These other polynomials are other_keygens_for_me
+    /// i isn' 0-indexed; it's 1-indexed.
+    pub fn set_keyshare(&mut self, keygen_evals_at_i: Vec<KeygenHelper>) {
+        assert!(keygen_evals_at_i.len() == self.total_nodes, "Error setting keyshare: not enough keygen polynomial evaluations at i! One evaluation is needed from *every* node");
+        let _ = keygen_evals_at_i.iter().for_each(
+            |kh| assert!(kh.for_node == self.idx, "Error setting keyshare: recieved an evaluation of a keygen polynomial at some value other than i")
+        );
+        let keygen_sums_at_i: BigInt = keygen_evals_at_i.iter().map(
+            |kh| &kh.value
+        ).sum();
+
         self.keyshare = Some(
-            PrivateKeyShare { share: shared_polynomial_at_my_idx }
+            PrivateKeyShare { share: keygen_sums_at_i }
         );
     }
 
@@ -273,6 +279,12 @@ mod tests {
         let secret_key_nobody_knows: BigInt = nodes.iter().map(
             |node| node.keygen_polynomial_at_0.clone()
         ).sum();
+
+        // let shared_pubkey = calculate_pubkey(
+        //     nodes.iter().map(|n| n.pubkey_share()).collect()
+        // ).unwrap();
+
+        // assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)), "pubkey failed");
 
         // do keygen process
         let keygen_helpers: Vec<Vec<KeygenHelper>> = nodes.iter().map(|node| node.keygen_step1(3)).collect();
