@@ -1,6 +1,6 @@
 use num_bigint::{RandBigInt, BigInt};
 use num_traits::{FromPrimitive, ToPrimitive};
-use babyjubjub_rs::{Fr, Point, ElGamalEncryption, B8, FrToBigInt};
+use babyjubjub_rs::{Fr, Point, ElGamalEncryption, B8, FrBigIntConversion};
 use ff::{Field, PrimeField};
 use std::ops::Mul;
 use babyjubjub_rs::Q;

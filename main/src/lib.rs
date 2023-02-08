@@ -1,6 +1,6 @@
 use num_bigint::{BigInt};
 use num_traits::{ToPrimitive, FromPrimitive};
-use babyjubjub_rs::{Fr, Point, ElGamalEncryption, B8, FrToBigInt};
+use babyjubjub_rs::{Fr, Point, ElGamalEncryption, B8, FrBigIntConversion};
 use ff::{Field, PrimeField};
 use polynomial::Polynomial;
 use crate::polynomial::lagrange_basis_at_0;
