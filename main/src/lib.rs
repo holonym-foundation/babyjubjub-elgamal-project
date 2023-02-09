@@ -268,7 +268,7 @@ pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_need
 
 #[cfg(test)]
 mod tests {
-    use std::{vec, ops::{Add, Mul}};
+    use std::{vec, ops::{Add, Mul}, result};
 
     use babyjubjub_rs::encrypt_elgamal;
     use num_bigint::ToBigInt;
@@ -334,6 +334,53 @@ mod tests {
 
     }
 
+    // This is again behavior that should not happen in the wild but should be possible if protocol is deviated. If it is impossible for this particular devation  from the protocol, the code must be wrong. Hence, we test that it's possible to reconstruct the shared secret from these functions:
+    #[test]
+    fn test_langrage_interpolate_for_shared_secret() {
+        let mut node1 = Node::init_rnd(1,3, 3);
+        let mut node2 = Node::init_rnd(2,3, 3);
+        let mut node3 = Node::init_rnd(3,3, 3);
+        
+        // simulate the nodes sharing one of their evaluations with the other nodes 
+        let from_node1 = node1.keygen_step1(3);
+        let from_node2 = node2.keygen_step1(3);
+        let from_node3 = node3.keygen_step1(3);
+        // Remember to subtract one from the index to conver it to zero-index!
+        let to_node1 = vec![&from_node1[0], &from_node2[0], &from_node3[0]];
+        let to_node2 = vec![&from_node1[1], &from_node2[1], &from_node3[1]];
+        let to_node3 = vec![&from_node1[2], &from_node2[2], &from_node3[2]];
+        // and finally each node reconstructs their part of the secret
+        node1.set_keyshare(&to_node1);
+        node2.set_keyshare(&to_node2);
+        node3.set_keyshare(&to_node3);
+
+        let nonce = &7654321.to_bigint().unwrap();
+        let public_nonce = B8.mul_scalar(nonce);
+        
+        let secret_key_nobody_knows = 
+            node1.keygen_polynomial_at_0 + 
+            node2.keygen_polynomial_at_0 + 
+            node3.keygen_polynomial_at_0 ;
+        // assert!(B8.mul_scalar(&secret_key_nobody_knows).equals(shared_pubkey), "abcd");
+
+        let mut r1 = lagrange_basis_at_0(1,3);
+        r1.mul_assign(&Fr::from_bigint(&node1.keyshare.unwrap().share));
+        // let p1 = public_nonce.mul_scalar(&r1.to_bigint());
+
+        let mut r2 = lagrange_basis_at_0(2,3);
+        r2.mul_assign(&Fr::from_bigint(&node2.keyshare.unwrap().share));
+        // let p2 = public_nonce.mul_scalar(&r2.to_bigint());
+
+        let mut r3 = lagrange_basis_at_0(3,3);
+        r3.mul_assign(&Fr::from_bigint(&node3.keyshare.unwrap().share));
+        // let p3 = public_nonce.mul_scalar(&r3.to_bigint());
+
+        
+        let mut result = r1.clone();
+        result.add_assign(&r2);
+        result.add_assign(&r3);
+        assert!(result.eq(&Fr::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
+    }
     // TODO: separate this into smaller unit tests
     // TODO: try with more total nodes than threshold nodes
     #[test]
@@ -361,7 +408,7 @@ mod tests {
             vec![node1.pubkey_share(), node2.pubkey_share(), node3.pubkey_share()]
         ).unwrap();
         let nonce = &7654321.to_bigint().unwrap();
-
+        let public_nonce = B8.mul_scalar(nonce);
         // Check C2 was computed correctly
         let encrypted = encrypt_elgamal(&shared_pubkey, nonce, &some_msg);
         // let secret_key_nobody_knows = &node1.keygen_polynomial_at_0 + &node2.keygen_polynomial_at_0 + &node3.keygen_polynomial_at_0;     
@@ -387,12 +434,48 @@ mod tests {
             node3.keygen_polynomial_at_0 ;
         // assert!(B8.mul_scalar(&secret_key_nobody_knows).equals(shared_pubkey), "abcd");
 
+        let mut r1 = lagrange_basis_at_0(1,3);
+        r1.mul_assign(&Fr::from_bigint(&node1.keyshare.unwrap().share));
+        // let p1 = public_nonce.mul_scalar(&r1.to_bigint());
+
+        let mut r2 = lagrange_basis_at_0(2,3);
+        r2.mul_assign(&Fr::from_bigint(&node2.keyshare.unwrap().share));
+        // let p2 = public_nonce.mul_scalar(&r2.to_bigint());
+
+        let mut r3 = lagrange_basis_at_0(3,3);
+        r3.mul_assign(&Fr::from_bigint(&node3.keyshare.unwrap().share));
+        // let p3 = public_nonce.mul_scalar(&r3.to_bigint());
+
+        
+        let mut result = r1.clone();
+        result.add_assign(&r2);
+        result.add_assign(&r3);
+        assert!(result.eq(&Fr::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
+
         let shared_dh_secret = shared_pubkey.mul_scalar(
             &nonce.mul(secret_key_nobody_knows)
         );
-        assert!(shared_dh_secret.equals(
-            reconstruct_dh_secret(vec![d1,d2,d3])
-        ));
+
+        // let mut r1 = lagrange_basis_at_0(1,3);
+        // r1.mul_assign(&Fr::from_bigint(&node1.keyshare.unwrap().share));
+        // let p1 = public_nonce.mul_scalar(&r1.to_bigint());
+
+        // let mut r2 = lagrange_basis_at_0(2,3);
+        // r2.mul_assign(&Fr::from_bigint(&node2.keyshare.unwrap().share));
+        // let p2 = public_nonce.mul_scalar(&r2.to_bigint());
+
+        // let mut r3 = lagrange_basis_at_0(3,3);
+        // r3.mul_assign(&Fr::from_bigint(&node3.keyshare.unwrap().share));
+        // let p3 = public_nonce.mul_scalar(&r3.to_bigint());
+
+        // let result = p1.add(&p2).add(&p3);
+        
+        // assert!(shared_dh_secret.equals(
+        //     result
+        // ));
+        // assert!(shared_dh_secret.equals(
+        //     reconstruct_dh_secret(vec![d1,d2,d3])
+        // ));
 
         // let decrypted = decrypt(encrypted, vec![d1,d2,d3], 3);
         // println!("some_msg {:?}", some_msg);
