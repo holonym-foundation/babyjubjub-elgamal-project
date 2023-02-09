@@ -103,12 +103,12 @@ impl PrivateKeyShare {
         PrivateKeyShare { share: b }
     }
 
-    /// C1 is the first value of the (C1, C2) ElGamal encryption result
-    pub fn partial_decrypt(&self, c1: &Point) -> Point {
-        // Make sure inputs aren't bad (i imagine this check could be skipped for performance reasons, but it seems a sanity check here would be helpful)
-        assert!(c1.on_curve());
-        c1.mul_scalar(&self.share)
-    }
+    // /// C1 is the first value of the (C1, C2) ElGamal encryption result
+    // pub fn partial_decrypt(&self, c1: &Point) -> Point {
+    //     // Make sure inputs aren't bad (i imagine this check could be skipped for performance reasons, but it seems a sanity check here would be helpful)
+    //     assert!(c1.on_curve());
+    //     c1.mul_scalar(&self.share)
+    // }
 }
 
 
@@ -203,17 +203,15 @@ impl Node {
         basis
     }
 
-    /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2). Returns secret share * C1
-    pub fn partial_decrypt_(&self, c1: &Point) -> Point {
-        self.keyshare.as_ref().unwrap()
-        .partial_decrypt(c1)
-    }
+    // /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2). Returns secret share * C1
+    // pub fn partial_decrypt_(&self, c1: &Point) -> Point {
+    //     self.keyshare.as_ref().unwrap()
+    //     .partial_decrypt(c1)
+    // }
 
     /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2). Returns secret share * my lagrange basis * C1
     pub fn partial_decrypt(&self, c1: &Point) -> Point {
-        self.partial_decrypt_(c1).mul_scalar(
-            &lagrange_basis_at_0(self.idx as u32, self.total_nodes as u32).to_bigint()
-        )
+        c1.mul_scalar(&self.secret_lagrange_basis_at_0().to_bigint())
     }
 
     
@@ -339,6 +337,56 @@ mod tests {
         )
 
     }
+    #[test]
+    fn test_partial_decryption() {
+        let mut node1 = Node::init_rnd(1,3, 3);
+        let mut node2 = Node::init_rnd(2,3, 3);
+        let mut node3 = Node::init_rnd(3,3, 3);
+
+        // simulate keygen process:
+        // The nodes sharing one of their evaluations with the other nodes
+        let from_node1 = node1.keygen_step1(3);
+        let from_node2 = node2.keygen_step1(3);
+        let from_node3 = node3.keygen_step1(3);
+        // Remember to subtract one from the index to conver it to zero-index!
+        let to_node1 = vec![&from_node1[0], &from_node2[0], &from_node3[0]];
+        let to_node2 = vec![&from_node1[1], &from_node2[1], &from_node3[1]];
+        let to_node3 = vec![&from_node1[2], &from_node2[2], &from_node3[2]];
+        // and finally each node reconstructs their part of the secret
+        node1.set_keyshare(&to_node1);
+        node2.set_keyshare(&to_node2);
+        node3.set_keyshare(&to_node3);
+        
+        let secret_key_nobody_knows = 
+            node1.keygen_polynomial_at_0.clone() + 
+            node2.keygen_polynomial_at_0.clone() + 
+            node3.keygen_polynomial_at_0.clone() ;
+
+
+        // some arbitrary nonce and public version
+        let nonce = &7654321.to_bigint().unwrap();
+        let public_nonce = B8.mul_scalar(nonce);
+
+        // Try decrypting
+        let d1 = node1.partial_decrypt(&public_nonce);
+        let d2 = node2.partial_decrypt(&public_nonce);
+        let d3 = node3.partial_decrypt(&public_nonce);
+        
+        //[nonce * L_i(0)] B8
+        let d1_ = public_nonce.mul_scalar(&node1.secret_lagrange_basis_at_0().to_bigint());
+        let d2_ = public_nonce.mul_scalar(&node2.secret_lagrange_basis_at_0().to_bigint());
+        let d3_ = public_nonce.mul_scalar(&node3.secret_lagrange_basis_at_0().to_bigint());
+
+        assert!(d1.equals(d1_));
+        assert!(d2.equals(d2_));
+        assert!(d3.equals(d3_));
+
+        // Note: this is full decryption and should perhaps be in another file:
+        assert!(d1.add(&d2).add(&d3).equals(
+            B8.mul_scalar(&secret_key_nobody_knows).mul_scalar(&nonce)
+        ))
+
+    }
 
     // This is again behavior that should not happen in the wild but should be possible if protocol is deviated. If it is impossible for this particular devation  from the protocol, the code must be wrong. Hence, we test that it's possible to reconstruct the shared secret from these functions:
     #[test]
@@ -360,8 +408,6 @@ mod tests {
         node2.set_keyshare(&to_node2);
         node3.set_keyshare(&to_node3);
 
-        let nonce = &7654321.to_bigint().unwrap();
-        let public_nonce = B8.mul_scalar(nonce);
         
         let secret_key_nobody_knows = 
             node1.keygen_polynomial_at_0.clone() + 
@@ -371,8 +417,11 @@ mod tests {
         let mut result = node1.secret_lagrange_basis_at_0();
         result.add_assign(  &node2.secret_lagrange_basis_at_0());
         result.add_assign(  &node3.secret_lagrange_basis_at_0());
+        
         assert!(result.eq(&Fr::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
+
     }
+
     // TODO: separate this into smaller unit tests
     // TODO: try with more total nodes than threshold nodes
     #[test]
