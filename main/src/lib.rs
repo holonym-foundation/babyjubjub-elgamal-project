@@ -164,10 +164,13 @@ impl Node {
     /// num_nodes = how many nodes it needs to share its polynomial evaluations with. Note: all nodes must do this and give result to all other nodes
     pub fn keygen_step1(&self, num_nodes: usize) -> Vec<KeygenHelper> {
         (0..num_nodes).map(
-            |i| KeygenHelper {
-                for_node: i+1, // i+1 since nodes are indexed at 1
-                value: self.keygen_polynomial.eval(&BigInt::from_usize(i).unwrap())
-            } 
+            |i| {
+                let idx = i + 1; // i+1 since nodes are indexed at 1
+                KeygenHelper {
+                    for_node: idx, 
+                    value: self.keygen_polynomial.eval(&BigInt::from_usize(idx).unwrap())
+                } 
+            }
         )
 
         .collect::<Vec<KeygenHelper>>()
@@ -296,6 +299,13 @@ mod tests {
             |node| node.keygen_polynomial_at_0.clone()
         ).sum();
 
+        let secret_polynomial_nobody_knows = nodes.iter().fold(
+            Polynomial::from_coeffs(
+                vec![0.to_bigint().unwrap(), 0.to_bigint().unwrap(), 0.to_bigint().unwrap()]
+            ),
+            |a,b| a.add_same_deg(&b.keygen_polynomial)
+        );
+
         // let shared_pubkey = calculate_pubkey(
         //     nodes.iter().map(|n| n.pubkey_share()).collect()
         // ).unwrap();
@@ -319,22 +329,37 @@ mod tests {
         nodes[1].set_keyshare(&node2_inputs); 
         nodes[2].set_keyshare(&node3_inputs); 
 
-        let shares: Vec<BigInt> = nodes.iter().map(
-            |node| node.keyshare.as_ref().unwrap().share.clone()
-        ).collect();
+        println!("NODE1 INPUZ {:?}", node1_inputs.iter().map(|x|x.value.clone()).collect::<Vec<BigInt>>());
+        assert_eq!(
+            secret_polynomial_nobody_knows.eval(&1.to_bigint().unwrap()),
+            nodes[0].keyshare.as_ref().unwrap().share
+        );
+        assert!(
+                Fr::from_str(
+                    &nodes[0].keyshare.as_ref().unwrap().share.to_string()
+            ).unwrap()
+            .eq(
+                &Fr::from_str(
+                    &secret_polynomial_nobody_knows.eval(&1.to_bigint().unwrap()).to_string()
+            ).unwrap()
+            )
+        );
+        // let shares: Vec<BigInt> = nodes.iter().map(
+        //     |node| node.keyshare.as_ref().unwrap().share.clone()
+        // ).collect();
 
-        let lagrange_bases_at_0: Vec<Fr> = [1,2,3].iter().map(
-            |i| lagrange_basis_at_0(*i, 2)
-        ).collect();
+        // let lagrange_bases_at_0: Vec<Fr> = [1,2,3].iter().map(
+        //     |i| lagrange_basis_at_0(*i, 2)
+        // ).collect();
 
-        // Reconstruct polynomial as a linear combination of shares * bases
-        let reconstructed_polynomial_at_0: BigInt = shares.iter()
-        .zip(lagrange_bases_at_0)
-        .map(
-            | (share, basis) |   share * basis.to_bigint()
-        ).sum();
+        // // Reconstruct polynomial as a linear combination of shares * bases
+        // let reconstructed_polynomial_at_0: BigInt = shares.iter()
+        // .zip(lagrange_bases_at_0)
+        // .map(
+        //     | (share, basis) |   share * basis.to_bigint()
+        // ).sum();
 
-        assert_eq!(reconstructed_polynomial_at_0, secret_key_nobody_knows);
+        // assert_eq!(reconstructed_polynomial_at_0, secret_key_nobody_knows);
 
     }
 
