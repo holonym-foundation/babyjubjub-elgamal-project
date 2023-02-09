@@ -263,7 +263,7 @@ pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_need
 
 #[cfg(test)]
 mod tests {
-    use std::vec;
+    use std::{vec, ops::Add};
 
     use babyjubjub_rs::encrypt_elgamal;
     use num_bigint::ToBigInt;
@@ -306,12 +306,6 @@ mod tests {
             |a,b| a.add_same_deg(&b.keygen_polynomial)
         );
 
-        // let shared_pubkey = calculate_pubkey(
-        //     nodes.iter().map(|n| n.pubkey_share()).collect()
-        // ).unwrap();
-
-        // assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)), "pubkey failed");
-
         // do keygen process
         let keygen_helpers: Vec<Vec<KeygenHelper>> = nodes.iter().map(|node| node.keygen_step1(3)).collect();
 
@@ -329,37 +323,13 @@ mod tests {
         nodes[1].set_keyshare(&node2_inputs); 
         nodes[2].set_keyshare(&node3_inputs); 
 
-        println!("NODE1 INPUZ {:?}", node1_inputs.iter().map(|x|x.value.clone()).collect::<Vec<BigInt>>());
-        assert_eq!(
-            secret_polynomial_nobody_knows.eval(&1.to_bigint().unwrap()),
-            nodes[0].keyshare.as_ref().unwrap().share
-        );
-        assert!(
-                Fr::from_str(
-                    &nodes[0].keyshare.as_ref().unwrap().share.to_string()
-            ).unwrap()
-            .eq(
-                &Fr::from_str(
-                    &secret_polynomial_nobody_knows.eval(&1.to_bigint().unwrap()).to_string()
-            ).unwrap()
+        nodes.iter().for_each(
+            |n| 
+            assert_eq!(
+                secret_polynomial_nobody_knows.eval(&n.idx.to_bigint().unwrap()),
+                n.keyshare.as_ref().unwrap().share
             )
-        );
-        // let shares: Vec<BigInt> = nodes.iter().map(
-        //     |node| node.keyshare.as_ref().unwrap().share.clone()
-        // ).collect();
-
-        // let lagrange_bases_at_0: Vec<Fr> = [1,2,3].iter().map(
-        //     |i| lagrange_basis_at_0(*i, 2)
-        // ).collect();
-
-        // // Reconstruct polynomial as a linear combination of shares * bases
-        // let reconstructed_polynomial_at_0: BigInt = shares.iter()
-        // .zip(lagrange_bases_at_0)
-        // .map(
-        //     | (share, basis) |   share * basis.to_bigint()
-        // ).sum();
-
-        // assert_eq!(reconstructed_polynomial_at_0, secret_key_nobody_knows);
+        )
 
     }
 
