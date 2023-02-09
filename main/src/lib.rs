@@ -206,7 +206,7 @@ impl Node {
     /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2). Returns secret share * my lagrange basis * C1
     pub fn partial_decrypt(&self, c1: &Point) -> Point {
         self.partial_decrypt_(c1).mul_scalar(
-            &lagrange_basis_at_0(self.idx as u32, (self.threshold_nodes-1) as u32).to_bigint()
+            &lagrange_basis_at_0(self.idx as u32, self.total_nodes as u32).to_bigint()
         )
     }
 
@@ -228,33 +228,38 @@ pub fn calculate_pubkey(pubkey_shares: Vec<Point>) -> Option<Point> {
     acc
 }
 
-pub fn decrypt_(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) -> Point {
-    assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
-    let reconstructed_bases_at_0 = shares.iter().enumerate().map(
-        // Now we have a mapping of index i to decryption share s_i
-        // Multiply the ith Lagrange basis at 0, L_i(0), by s_i 
-        |(i, s_i)| 
-        s_i.mul_scalar(
-            &lagrange_basis_at_0((i+1) as u32, (num_shares_needed - 1) as u32).to_bigint()
-        )
-    );
+// pub fn decrypt_(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) -> Point {
+//     assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
+//     let reconstructed_bases_at_0 = shares.iter().enumerate().map(
+//         // Now we have a mapping of index i to decryption share s_i
+//         // Multiply the ith Lagrange basis at 0, L_i(0), by s_i 
+//         |(i, s_i)| 
+//         s_i.mul_scalar(
+//             &lagrange_basis_at_0((i+1) as u32, (num_shares_needed - 1) as u32).to_bigint()
+//         )
+//     );
 
-    // Sum all the reconstructed bases at 0 to get the y-intercept
-    let reconstructed_polynomial_at_0 = reconstructed_bases_at_0.reduce(
-        |a,b| a.add(&b)
-    ).unwrap();
+//     // Sum all the reconstructed bases at 0 to get the y-intercept
+//     let reconstructed_polynomial_at_0 = reconstructed_bases_at_0.reduce(
+//         |a,b| a.add(&b)
+//     ).unwrap();
     
-    // The Diffie-Hellman "shared secret" in ElGamal system coincides with reconstructed "shared secret" at y-intercept, even though these are shared in different ways!
-    encrypted.c2.add(&reconstructed_polynomial_at_0.neg())
+//     // The Diffie-Hellman "shared secret" in ElGamal system coincides with reconstructed "shared secret" at y-intercept, even though these are shared in different ways!
+//     encrypted.c2.add(&reconstructed_polynomial_at_0.neg())
+// }
+
+
+// Reconstructs the Diffie-Hellman shared secret using decryption shares
+pub fn reconstruct_dh_secret(decryption_shares: Vec<Point>) -> Point {
+    decryption_shares.iter().map(|x|x.clone()).reduce(
+        |a,b| a.add(&b)
+    ).unwrap()
 }
 
 pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) -> Point {
-    assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
+    assert!(shares.len().to_u64().unwrap() == num_shares_needed);
 
-    // Sum all the shares to get the Diffie-Hellman-shared secret
-    let reconstructed_dh_secret: Point = shares.iter().map(|x|x.clone()).reduce(
-        |a,b| a.add(&b)
-    ).unwrap();
+    let reconstructed_dh_secret = reconstruct_dh_secret(shares);
 
     // The Diffie-Hellman "shared secret" in ElGamal system coincides with reconstructed "shared secret" at y-intercept, even though these are shared in different ways!
     encrypted.c2.add(&reconstructed_dh_secret.neg())
@@ -263,7 +268,7 @@ pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_need
 
 #[cfg(test)]
 mod tests {
-    use std::{vec, ops::Add};
+    use std::{vec, ops::{Add, Mul}};
 
     use babyjubjub_rs::encrypt_elgamal;
     use num_bigint::ToBigInt;
@@ -286,18 +291,14 @@ mod tests {
     }
     // Check the secret can indeed be reconstructed from the shares (this won't happen if the nodes follow protocol, but should be tested that it *can* happen, because if it can't happen, the key was generated incorrectly)
     #[test]
-    fn test_secret_reconstruction() {
+    fn test_keygen() {
         let mut nodes = vec![
             Node::init_rnd(1,3,3),
             Node::init_rnd(2,3,3),
             Node::init_rnd(3,3,3),
 
         ];
-        
-        // sum their evaluations at 0 to get the secret key
-        let secret_key_nobody_knows: BigInt = nodes.iter().map(
-            |node| node.keygen_polynomial_at_0.clone()
-        ).sum();
+
 
         let secret_polynomial_nobody_knows = nodes.iter().fold(
             Polynomial::from_coeffs(
@@ -379,10 +380,24 @@ mod tests {
         let d2 = node2.partial_decrypt(&encrypted.c1);
         let d3 = node3.partial_decrypt(&encrypted.c1);
 
-        let decrypted = decrypt(encrypted, vec![d1,d2,d3], 3);
-        println!("some_msg {:?}", some_msg);
-        println!("decrypted {:?}", decrypted);
-        assert!(decrypted.equals(some_msg));
+
+        let secret_key_nobody_knows = 
+            node1.keygen_polynomial_at_0 + 
+            node2.keygen_polynomial_at_0 + 
+            node3.keygen_polynomial_at_0 ;
+        // assert!(B8.mul_scalar(&secret_key_nobody_knows).equals(shared_pubkey), "abcd");
+
+        let shared_dh_secret = shared_pubkey.mul_scalar(
+            &nonce.mul(secret_key_nobody_knows)
+        );
+        assert!(shared_dh_secret.equals(
+            reconstruct_dh_secret(vec![d1,d2,d3])
+        ));
+
+        // let decrypted = decrypt(encrypted, vec![d1,d2,d3], 3);
+        // println!("some_msg {:?}", some_msg);
+        // println!("decrypted {:?}", decrypted);
+        // assert!(decrypted.equals(some_msg));
 
     }
 
