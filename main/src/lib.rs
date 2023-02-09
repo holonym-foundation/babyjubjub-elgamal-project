@@ -109,7 +109,6 @@ impl PrivateKeyShare {
         assert!(c1.on_curve());
         c1.mul_scalar(&self.share)
     }
-
 }
 
 
@@ -195,6 +194,13 @@ impl Node {
 
     pub fn pubkey_share(&self) -> Point {
         B8.mul_scalar(&self.keygen_polynomial_at_0)
+    }
+
+    /// Return this node's secret share * this node's Lagrange basis, evaluated at 0. All nodes' secret_lagrange_basis_at_0() should sum to the shared private key
+    fn secret_lagrange_basis_at_0(&self) -> Fr {
+        let mut basis = lagrange_basis_at_0(self.idx as u32, self.threshold_nodes as u32);
+        basis.mul_assign(&Fr::from_bigint(&self.keyshare.as_ref().unwrap().share));
+        basis
     }
 
     /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2). Returns secret share * C1
@@ -358,27 +364,13 @@ mod tests {
         let public_nonce = B8.mul_scalar(nonce);
         
         let secret_key_nobody_knows = 
-            node1.keygen_polynomial_at_0 + 
-            node2.keygen_polynomial_at_0 + 
-            node3.keygen_polynomial_at_0 ;
-        // assert!(B8.mul_scalar(&secret_key_nobody_knows).equals(shared_pubkey), "abcd");
-
-        let mut r1 = lagrange_basis_at_0(1,3);
-        r1.mul_assign(&Fr::from_bigint(&node1.keyshare.unwrap().share));
-        // let p1 = public_nonce.mul_scalar(&r1.to_bigint());
-
-        let mut r2 = lagrange_basis_at_0(2,3);
-        r2.mul_assign(&Fr::from_bigint(&node2.keyshare.unwrap().share));
-        // let p2 = public_nonce.mul_scalar(&r2.to_bigint());
-
-        let mut r3 = lagrange_basis_at_0(3,3);
-        r3.mul_assign(&Fr::from_bigint(&node3.keyshare.unwrap().share));
-        // let p3 = public_nonce.mul_scalar(&r3.to_bigint());
-
+            node1.keygen_polynomial_at_0.clone() + 
+            node2.keygen_polynomial_at_0.clone() + 
+            node3.keygen_polynomial_at_0.clone() ;
         
-        let mut result = r1.clone();
-        result.add_assign(&r2);
-        result.add_assign(&r3);
+        let mut result = node1.secret_lagrange_basis_at_0();
+        result.add_assign(  &node2.secret_lagrange_basis_at_0());
+        result.add_assign(  &node3.secret_lagrange_basis_at_0());
         assert!(result.eq(&Fr::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
     }
     // TODO: separate this into smaller unit tests
