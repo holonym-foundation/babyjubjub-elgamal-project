@@ -405,7 +405,7 @@ mod tests {
         result.add_assign(  &node2.secret_lagrange_basis_at_0());
         result.add_assign(  &node3.secret_lagrange_basis_at_0());
         
-        assert!(result.eq(&Fr::from_bigint(&secret_key_nobody_knows)));
+        assert!(result.eq(&Fl::from_bigint(&secret_key_nobody_knows)));
         
         // Why doesn't this work? Shouldn't it wrap around or give the special point?
         // println!("B8? {:?} {:?} \n {:?} {:?}", B8.x, B8.y, B8.mul_scalar(&(modulus.clone())).x, B8.mul_scalar(&(modulus.clone())).y);
@@ -450,7 +450,7 @@ mod tests {
         result.add_assign(  &node2.secret_lagrange_basis_at_0());
         result.add_assign(  &node3.secret_lagrange_basis_at_0());
         
-        assert!(result.eq(&Fr::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
+        assert!(result.eq(&Fl::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
 
     }
 
@@ -508,22 +508,22 @@ mod tests {
         // assert!(B8.mul_scalar(&secret_key_nobody_knows).equals(shared_pubkey), "abcd");
 
         let mut r1 = lagrange_basis_at_0(1,3);
-        r1.mul_assign(&Fr::from_bigint(&node1.keyshare.unwrap().share));
+        r1.mul_assign(&Fl::from_bigint(&node1.keyshare.unwrap().share));
         // let p1 = public_nonce.mul_scalar(&r1.to_bigint());
 
         let mut r2 = lagrange_basis_at_0(2,3);
-        r2.mul_assign(&Fr::from_bigint(&node2.keyshare.unwrap().share));
+        r2.mul_assign(&Fl::from_bigint(&node2.keyshare.unwrap().share));
         // let p2 = public_nonce.mul_scalar(&r2.to_bigint());
 
         let mut r3 = lagrange_basis_at_0(3,3);
-        r3.mul_assign(&Fr::from_bigint(&node3.keyshare.unwrap().share));
+        r3.mul_assign(&Fl::from_bigint(&node3.keyshare.unwrap().share));
         // let p3 = public_nonce.mul_scalar(&r3.to_bigint());
 
         
         let mut result = r1.clone();
         result.add_assign(&r2);
         result.add_assign(&r3);
-        assert!(result.eq(&Fr::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
+        assert!(result.eq(&Fl::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
 
         let shared_dh_secret = shared_pubkey.mul_scalar(
             &nonce.mul(secret_key_nobody_knows)

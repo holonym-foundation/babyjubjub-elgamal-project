@@ -107,10 +107,10 @@ mod tests {
 
     #[test]
     fn test_random_polynomial_degree() {
-        let p0 = Polynomial::random_polynomial_fr(0);
-        let p1 = Polynomial::random_polynomial_fr(1);
-        let p2 = Polynomial::random_polynomial_fr(2);
-        let p3 = Polynomial::random_polynomial_fr(3);
+        let p0 = Polynomial::random_polynomial_fl(0);
+        let p1 = Polynomial::random_polynomial_fl(1);
+        let p2 = Polynomial::random_polynomial_fl(2);
+        let p3 = Polynomial::random_polynomial_fl(3);
         assert!(p0.coefficients.len() == 1);
         assert!(p1.coefficients.len() == 2);
         assert!(p2.coefficients.len() == 3);
