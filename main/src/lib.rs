@@ -275,10 +275,66 @@ mod tests {
     use std::{vec, ops::{Add, Mul}, result};
 
     use babyjubjub_rs::{encrypt_elgamal, Q};
+    use js_sys::Array;
     use num_bigint::ToBigInt;
 
     use super::*;
 
+    // Helper function to initialize some nodes and do the keysharing
+    fn init_test_nodes<const THRESHOLD_NODES: usize, const TOTAL_NODES: usize>() -> [Node; TOTAL_NODES] {
+        let mut nodes: Vec<Node> = vec![];
+        // nodes are note 0-indexed but rather 1-indexed:
+        for i in 1..(TOTAL_NODES+1) {
+            let mut node =  Node::init_rnd(i, THRESHOLD_NODES, TOTAL_NODES);
+            nodes.push(node);
+        }
+
+        nodes.try_into().unwrap_or_else(
+            |_| panic!("failed to unwrap nodes")
+        )
+
+    }
+
+    // fn init_test_nodes(threshold_nodes: usize, total_nodes: usize) -> Vec<Node> {
+    //     let mut nodes: Vec<Node> = vec![];
+    //     // nodes are note 0-indexed but rather 1-indexed:
+    //     for i in 1..(total_nodes+1) {
+    //         let mut node =  Node::init_rnd(i, threshold_nodes, total_nodes);
+    //         nodes.push(node);
+    //     }
+        
+    //     nodes
+    // }
+            
+    // TODO: make this helper function, since a lot of tests repeat this code to initialze nodes and secret-share between them
+    // // Helper function to initialize some nodes and do the keysharing
+    // fn initialize_some_nodes(threshold_nodes: usize, total_nodes: usize) -> Vec<Node> {
+    //     let mut nodes: Vec<Node> = vec![];
+    //     let mut helpers: Vec<KeygenHelper> = vec![];
+    //     // nodes are note 0-indexed but rather 1-indexed:
+    //     for i in 1..(total_nodes+1) {
+    //         let mut node =  Node::init_rnd(i, threshold_nodes, total_nodes);
+    //         nodes.push(node);
+    //         helpers.push(keygen_step1)
+    //     }
+        
+        
+
+    //     // simulate keygen process:
+    //     // The nodes sharing one of their evaluations with the other nodes
+    //     let from_node1 = node1.keygen_step1(3);
+    //     let from_node2 = node2.keygen_step1(3);
+    //     let from_node3 = node3.keygen_step1(3);
+    //     // Remember to subtract one from the index to conver it to zero-index!
+    //     let to_node1 = vec![&from_node1[0], &from_node2[0], &from_node3[0]];
+    //     let to_node2 = vec![&from_node1[1], &from_node2[1], &from_node3[1]];
+    //     let to_node3 = vec![&from_node1[2], &from_node2[2], &from_node3[2]];
+    //     // and finally each node reconstructs their part of the secret
+    //     node1.set_keyshare(&to_node1);
+    //     node2.set_keyshare(&to_node2);
+    //     node3.set_keyshare(&to_node3);
+        
+    // }
     #[test]
     fn test_pubkey() {
         let node1 = Node::init_rnd(1,2, 2);
@@ -339,12 +395,9 @@ mod tests {
     }
     #[test]
     fn test_partial_decryption() {
-        let mut node1 = Node::init_rnd(1,3, 3);
-        let mut node2 = Node::init_rnd(2,3, 3);
-        let mut node3 = Node::init_rnd(3,3, 3);
-
-        // simulate keygen process:
-        // The nodes sharing one of their evaluations with the other nodes
+        let [mut node1, mut node2, mut node3] = init_test_nodes::<3,3>();
+        
+        // simulate the nodes sharing one of their evaluations with the other nodes 
         let from_node1 = node1.keygen_step1(3);
         let from_node2 = node2.keygen_step1(3);
         let from_node3 = node3.keygen_step1(3);
@@ -356,11 +409,6 @@ mod tests {
         node1.set_keyshare(&to_node1);
         node2.set_keyshare(&to_node2);
         node3.set_keyshare(&to_node3);
-        
-        let secret_key_nobody_knows = 
-            node1.keygen_polynomial_at_0.clone() + 
-            node2.keygen_polynomial_at_0.clone() + 
-            node3.keygen_polynomial_at_0.clone() ;
 
 
         // some arbitrary nonce and public version
@@ -381,35 +429,39 @@ mod tests {
         assert!(d2.equals(d2_));
         assert!(d3.equals(d3_));
 
-        // Note: this is full decryption and should perhaps be in another file:
-        let modulus =  BigInt::parse_bytes(
-            b"21888242871839275222246405745257275088548364400416034343698204186575808495617",10
-        )
-            .unwrap();
+    }
 
-        // Can ignore this; secret key hasd been above modulus regardless of wheter the test succeeds!
-        // println!(
-        //     "secret key is under modulus? \n {:?} \n {:?}", secret_key_nobody_knows, modulus
-        // );
+    #[test]
+    fn test_dh_reconstruction() {
 
-        
-        // println!("LHS\n{:?}\nRHS\n{:?}", d1.add(&d2).add(&d3), B8.mul_scalar(&(secret_key_nobody_knows)).mul_scalar(&nonce));
-        
-        // Delete this part when test working. It just shows that the Lagrange interpolation correctly recovered the secret. However, Lagrange interpolation over elliptic curve is failing half of the time in the next asssert.
+        let [mut node1, mut node2, mut node3] = init_test_nodes::<3,3>();
+        // simulate the nodes sharing one of their evaluations with the other nodes 
+        let from_node1 = node1.keygen_step1(3);
+        let from_node2 = node2.keygen_step1(3);
+        let from_node3 = node3.keygen_step1(3);
+        // Remember to subtract one from the index to conver it to zero-index!
+        let to_node1 = vec![&from_node1[0], &from_node2[0], &from_node3[0]];
+        let to_node2 = vec![&from_node1[1], &from_node2[1], &from_node3[1]];
+        let to_node3 = vec![&from_node1[2], &from_node2[2], &from_node3[2]];
+        // and finally each node reconstructs their part of the secret
+        node1.set_keyshare(&to_node1);
+        node2.set_keyshare(&to_node2);
+        node3.set_keyshare(&to_node3);
+
         let secret_key_nobody_knows = 
             node1.keygen_polynomial_at_0.clone() + 
             node2.keygen_polynomial_at_0.clone() + 
             node3.keygen_polynomial_at_0.clone() ;
-        
-        let mut result = node1.secret_lagrange_basis_at_0();
-        result.add_assign(  &node2.secret_lagrange_basis_at_0());
-        result.add_assign(  &node3.secret_lagrange_basis_at_0());
-        
-        assert!(result.eq(&Fl::from_bigint(&secret_key_nobody_knows)));
-        
-        // Why doesn't this work? Shouldn't it wrap around or give the special point?
-        // println!("B8? {:?} {:?} \n {:?} {:?}", B8.x, B8.y, B8.mul_scalar(&(modulus.clone())).x, B8.mul_scalar(&(modulus.clone())).y);
-        // THIS LINE WORKS HALF OF THE TIME????
+
+
+        // some arbitrary nonce and public version
+        let nonce = &7654321.to_bigint().unwrap();
+        let public_nonce = B8.mul_scalar(nonce);
+
+        // Try decrypting
+        let d1 = node1.partial_decrypt(&public_nonce);
+        let d2 = node2.partial_decrypt(&public_nonce);
+        let d3 = node3.partial_decrypt(&public_nonce);
         assert!(d1.add(&d2).add(&d3).equals(
             B8.mul_scalar(&(secret_key_nobody_knows)).mul_scalar(&nonce)
         ));
@@ -417,7 +469,6 @@ mod tests {
         assert!(d1.add(&d2).add(&d3).equals(
             B8.mul_scalar(&nonce).mul_scalar(&(secret_key_nobody_knows))
         ));
-
     }
 
     // This is again behavior that should not happen in the wild but should be possible if protocol is deviated. If it is impossible for this particular devation  from the protocol, the code must be wrong. Hence, we test that it's possible to reconstruct the shared secret from these functions:

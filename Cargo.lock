@@ -105,6 +105,7 @@ dependencies = [
  "bytes",
  "clap 4.1.4",
  "ff_ce 0.11.0",
+ "ff_ce 0.14.3",
  "hex",
  "js-sys",
  "num-bigint 0.4.3",
@@ -131,6 +132,7 @@ dependencies = [
  "num-bigint 0.4.3",
  "num-traits",
  "poseidon-rs",
+ "rand 0.4.6",
  "rand 0.8.5",
  "serde",
 ]
@@ -553,7 +555,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d3a682c12d0cc98a32ab7540401a5ea1ed21d11571eea11d5829cd721f85ff0"
 dependencies = [
  "byteorder",
- "ff_derive_ce",
+ "ff_derive_ce 0.8.0",
  "hex",
  "rand 0.4.6",
 ]
@@ -565,6 +567,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b538e4231443a5b9c507caee3356f016d832cf7393d2d90f03ea3180d4e3fbc"
 dependencies = [
  "byteorder",
+ "ff_derive_ce 0.11.2",
  "hex",
  "rand 0.4.6",
  "serde",
@@ -581,6 +584,21 @@ dependencies = [
  "num-traits",
  "proc-macro2",
  "quote",
+ "syn",
+]
+
+[[package]]
+name = "ff_derive_ce"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b96fbccd88dbb1fac4ee4a07c2fcc4ca719a74ffbd9d2b9d41d8c8eb073d8b20"
+dependencies = [
+ "num-bigint 0.4.3",
+ "num-integer",
+ "num-traits",
+ "proc-macro2",
+ "quote",
+ "serde",
  "syn",
 ]
 
