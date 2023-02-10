@@ -229,27 +229,6 @@ pub fn calculate_pubkey(pubkey_shares: Vec<Point>) -> Option<Point> {
     acc
 }
 
-// pub fn decrypt_(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_needed: u64) -> Point {
-//     assert!(shares.len().to_u64().unwrap() >= num_shares_needed);
-//     let reconstructed_bases_at_0 = shares.iter().enumerate().map(
-//         // Now we have a mapping of index i to decryption share s_i
-//         // Multiply the ith Lagrange basis at 0, L_i(0), by s_i 
-//         |(i, s_i)| 
-//         s_i.mul_scalar(
-//             &lagrange_basis_at_0((i+1) as u32, (num_shares_needed - 1) as u32).to_bigint()
-//         )
-//     );
-
-//     // Sum all the reconstructed bases at 0 to get the y-intercept
-//     let reconstructed_polynomial_at_0 = reconstructed_bases_at_0.reduce(
-//         |a,b| a.add(&b)
-//     ).unwrap();
-    
-//     // The Diffie-Hellman "shared secret" in ElGamal system coincides with reconstructed "shared secret" at y-intercept, even though these are shared in different ways!
-//     encrypted.c2.add(&reconstructed_polynomial_at_0.neg())
-// }
-
-
 // Reconstructs the Diffie-Hellman shared secret using decryption shares
 pub fn reconstruct_dh_secret(decryption_shares: Vec<Point>) -> Point {
     decryption_shares.iter().map(|x|x.clone()).reduce(
@@ -269,10 +248,9 @@ pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_need
 
 #[cfg(test)]
 mod tests {
-    use std::{vec, ops::{Add, Mul}, result};
+    use std::{vec};
 
-    use babyjubjub_rs::{encrypt_elgamal, Q};
-    use js_sys::Array;
+    use babyjubjub_rs::{encrypt_elgamal};
     use num_bigint::ToBigInt;
 
     use super::*;
@@ -292,46 +270,7 @@ mod tests {
 
     }
 
-    // fn init_test_nodes(threshold_nodes: usize, total_nodes: usize) -> Vec<Node> {
-    //     let mut nodes: Vec<Node> = vec![];
-    //     // nodes are note 0-indexed but rather 1-indexed:
-    //     for i in 1..(total_nodes+1) {
-    //         let mut node =  Node::init_rnd(i, threshold_nodes, total_nodes);
-    //         nodes.push(node);
-    //     }
-        
-    //     nodes
-    // }
-            
-    // TODO: make this helper function, since a lot of tests repeat this code to initialze nodes and secret-share between them
-    // // Helper function to initialize some nodes and do the keysharing
-    // fn initialize_some_nodes(threshold_nodes: usize, total_nodes: usize) -> Vec<Node> {
-    //     let mut nodes: Vec<Node> = vec![];
-    //     let mut helpers: Vec<KeygenHelper> = vec![];
-    //     // nodes are note 0-indexed but rather 1-indexed:
-    //     for i in 1..(total_nodes+1) {
-    //         let mut node =  Node::init_rnd(i, threshold_nodes, total_nodes);
-    //         nodes.push(node);
-    //         helpers.push(keygen_step1)
-    //     }
-        
-        
 
-    //     // simulate keygen process:
-    //     // The nodes sharing one of their evaluations with the other nodes
-    //     let from_node1 = node1.keygen_step1(3);
-    //     let from_node2 = node2.keygen_step1(3);
-    //     let from_node3 = node3.keygen_step1(3);
-    //     // Remember to subtract one from the index to conver it to zero-index!
-    //     let to_node1 = vec![&from_node1[0], &from_node2[0], &from_node3[0]];
-    //     let to_node2 = vec![&from_node1[1], &from_node2[1], &from_node3[1]];
-    //     let to_node3 = vec![&from_node1[2], &from_node2[2], &from_node3[2]];
-    //     // and finally each node reconstructs their part of the secret
-    //     node1.set_keyshare(&to_node1);
-    //     node2.set_keyshare(&to_node2);
-    //     node3.set_keyshare(&to_node3);
-        
-    // }
     #[test]
     fn test_pubkey() {
         let node1 = Node::init_rnd(1,2, 2);
@@ -506,7 +445,7 @@ mod tests {
     // TODO: try with more total nodes than threshold nodes
     #[test]
     fn test_encrypt_decrypt() {
-        
+
        let [mut node1, mut node2, mut node3] = init_test_nodes::<3,3>();
         
         // simulate the nodes sharing one of their evaluations with the other nodes 
