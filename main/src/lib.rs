@@ -506,6 +506,7 @@ mod tests {
     // TODO: try with more total nodes than threshold nodes
     #[test]
     fn test_encrypt_decrypt() {
+        
        let [mut node1, mut node2, mut node3] = init_test_nodes::<3,3>();
         
         // simulate the nodes sharing one of their evaluations with the other nodes 
@@ -527,7 +528,7 @@ mod tests {
             vec![node1.pubkey_share(), node2.pubkey_share(), node3.pubkey_share()]
         ).unwrap();
         let nonce = &7654321.to_bigint().unwrap();
-        let public_nonce = B8.mul_scalar(nonce);
+
         // Check C2 was computed correctly
         let encrypted = encrypt_elgamal(&shared_pubkey, nonce, &some_msg);
 
@@ -535,59 +536,8 @@ mod tests {
         let d2 = node2.partial_decrypt(&encrypted.c1);
         let d3 = node3.partial_decrypt(&encrypted.c1);
 
-
-
-        // let secret_key_nobody_knows = 
-        //     node1.keygen_polynomial_at_0 + 
-        //     node2.keygen_polynomial_at_0 + 
-        //     node3.keygen_polynomial_at_0 ;
-        // assert!(B8.mul_scalar(&secret_key_nobody_knows).equals(shared_pubkey), "abcd");
-
-        // let mut r1 = lagrange_basis_at_0(1,3);
-        // r1.mul_assign(&Fl::from_bigint(&node1.keyshare.unwrap().share));
-        // let p1 = public_nonce.mul_scalar(&r1.to_bigint());
-
-        // let mut r2 = lagrange_basis_at_0(2,3);
-        // r2.mul_assign(&Fl::from_bigint(&node2.keyshare.unwrap().share));
-        // let p2 = public_nonce.mul_scalar(&r2.to_bigint());
-
-        // let mut r3 = lagrange_basis_at_0(3,3);
-        // r3.mul_assign(&Fl::from_bigint(&node3.keyshare.unwrap().share));
-        // let p3 = public_nonce.mul_scalar(&r3.to_bigint());
-
-        
-        
-        // let shared_dh_secret = shared_pubkey.mul_scalar(
-        //     &nonce.mul(secret_key_nobody_knows)
-        // );
-
-        // let mut r1 = lagrange_basis_at_0(1,3);
-        // r1.mul_assign(&Fr::from_bigint(&node1.keyshare.unwrap().share));
-        // let p1 = public_nonce.mul_scalar(&r1.to_bigint());
-
-        // let mut r2 = lagrange_basis_at_0(2,3);
-        // r2.mul_assign(&Fr::from_bigint(&node2.keyshare.unwrap().share));
-        // let p2 = public_nonce.mul_scalar(&r2.to_bigint());
-
-        // let mut r3 = lagrange_basis_at_0(3,3);
-        // r3.mul_assign(&Fr::from_bigint(&node3.keyshare.unwrap().share));
-        // let p3 = public_nonce.mul_scalar(&r3.to_bigint());
-
-        // let result = p1.add(&p2).add(&p3);
-        
-        // assert!(shared_dh_secret.equals(
-        //     result
-        // ));
-        // assert!(shared_dh_secret.equals(
-        //     reconstruct_dh_secret(vec![d1,d2,d3])
-        // ));
-
-        // let decrypted = decrypt(encrypted, vec![d1,d2,d3], 3);
-        // println!("some_msg {:?}", some_msg);
-        // println!("decrypted {:?}", decrypted);
-        // assert!(decrypted.equals(some_msg));
-
         let decrypted = decrypt(encrypted, vec![d1,d2,d3], 3);
+        assert!(some_msg.equals(decrypted));
 
     }
 
