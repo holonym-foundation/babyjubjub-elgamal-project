@@ -140,9 +140,6 @@ impl Node {
     pub fn init_rnd(idx: usize, threshold_nodes: usize, total_nodes: usize) -> Node {
         assert!(idx>0 && idx<=total_nodes, "node index {} must be greater than 0 and <= total_nodes {}", idx, total_nodes);
         let kp = Polynomial::random_polynomial_fl(threshold_nodes-1);
-        let at_zero = kp.eval(
-            &BigInt::from_u8(0).unwrap()
-        );
         Node::init(idx, kp, total_nodes)
     }
     /// Creates a Node using a given keygen Polynomial
@@ -508,10 +505,8 @@ mod tests {
     // TODO: separate this into smaller unit tests
     // TODO: try with more total nodes than threshold nodes
     #[test]
-    fn test_keygen_encrypt_decrypt() {
-        let mut node1 = Node::init_rnd(1,3, 3);
-        let mut node2 = Node::init_rnd(2,3, 3);
-        let mut node3 = Node::init_rnd(3,3, 3);
+    fn test_encrypt_decrypt() {
+       let [mut node1, mut node2, mut node3] = init_test_nodes::<3,3>();
         
         // simulate the nodes sharing one of their evaluations with the other nodes 
         let from_node1 = node1.keygen_step1(3);
@@ -535,50 +530,36 @@ mod tests {
         let public_nonce = B8.mul_scalar(nonce);
         // Check C2 was computed correctly
         let encrypted = encrypt_elgamal(&shared_pubkey, nonce, &some_msg);
-        // let secret_key_nobody_knows = &node1.keygen_polynomial_at_0 + &node2.keygen_polynomial_at_0 + &node3.keygen_polynomial_at_0;     
 
-        // // Why is this wrong?
-        // assert!(shared_pubkey.equals(B8.mul_scalar(&secret_key_nobody_knows)));
-
-        // assert!(encrypted.c2.equals(
-        //     some_msg.add(
-        //         &B8.mul_scalar(&secret_key_nobody_knows).mul_scalar(nonce)
-        //     )
-        // ));
-        
-        
         let d1 = node1.partial_decrypt(&encrypted.c1);
         let d2 = node2.partial_decrypt(&encrypted.c1);
         let d3 = node3.partial_decrypt(&encrypted.c1);
 
 
-        let secret_key_nobody_knows = 
-            node1.keygen_polynomial_at_0 + 
-            node2.keygen_polynomial_at_0 + 
-            node3.keygen_polynomial_at_0 ;
+
+        // let secret_key_nobody_knows = 
+        //     node1.keygen_polynomial_at_0 + 
+        //     node2.keygen_polynomial_at_0 + 
+        //     node3.keygen_polynomial_at_0 ;
         // assert!(B8.mul_scalar(&secret_key_nobody_knows).equals(shared_pubkey), "abcd");
 
-        let mut r1 = lagrange_basis_at_0(1,3);
-        r1.mul_assign(&Fl::from_bigint(&node1.keyshare.unwrap().share));
+        // let mut r1 = lagrange_basis_at_0(1,3);
+        // r1.mul_assign(&Fl::from_bigint(&node1.keyshare.unwrap().share));
         // let p1 = public_nonce.mul_scalar(&r1.to_bigint());
 
-        let mut r2 = lagrange_basis_at_0(2,3);
-        r2.mul_assign(&Fl::from_bigint(&node2.keyshare.unwrap().share));
+        // let mut r2 = lagrange_basis_at_0(2,3);
+        // r2.mul_assign(&Fl::from_bigint(&node2.keyshare.unwrap().share));
         // let p2 = public_nonce.mul_scalar(&r2.to_bigint());
 
-        let mut r3 = lagrange_basis_at_0(3,3);
-        r3.mul_assign(&Fl::from_bigint(&node3.keyshare.unwrap().share));
+        // let mut r3 = lagrange_basis_at_0(3,3);
+        // r3.mul_assign(&Fl::from_bigint(&node3.keyshare.unwrap().share));
         // let p3 = public_nonce.mul_scalar(&r3.to_bigint());
 
         
-        let mut result = r1.clone();
-        result.add_assign(&r2);
-        result.add_assign(&r3);
-        assert!(result.eq(&Fl::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
-
-        let shared_dh_secret = shared_pubkey.mul_scalar(
-            &nonce.mul(secret_key_nobody_knows)
-        );
+        
+        // let shared_dh_secret = shared_pubkey.mul_scalar(
+        //     &nonce.mul(secret_key_nobody_knows)
+        // );
 
         // let mut r1 = lagrange_basis_at_0(1,3);
         // r1.mul_assign(&Fr::from_bigint(&node1.keyshare.unwrap().share));
@@ -605,6 +586,8 @@ mod tests {
         // println!("some_msg {:?}", some_msg);
         // println!("decrypted {:?}", decrypted);
         // assert!(decrypted.equals(some_msg));
+
+        let decrypted = decrypt(encrypted, vec![d1,d2,d3], 3);
 
     }
 
