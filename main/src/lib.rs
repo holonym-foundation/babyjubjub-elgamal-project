@@ -1,9 +1,9 @@
 use num_bigint::{BigInt};
 use num_traits::{ToPrimitive, FromPrimitive};
-use babyjubjub_rs::{Fr, Point, ElGamalEncryption, B8, FrBigIntConversion};
-use ff::{Field, PrimeField};
+use babyjubjub_rs::{Fr, Fl, Point, ElGamalEncryption, B8, FrBigIntConversion};
 use polynomial::Polynomial;
 use crate::polynomial::lagrange_basis_at_0;
+use ff::{Field};
 
 mod polynomial;
 
@@ -139,7 +139,7 @@ impl Node {
     /// degree is degree of the polynomial
     pub fn init_rnd(idx: usize, threshold_nodes: usize, total_nodes: usize) -> Node {
         assert!(idx>0 && idx<=total_nodes, "node index {} must be greater than 0 and <= total_nodes {}", idx, total_nodes);
-        let kp = Polynomial::random_polynomial_fr(threshold_nodes-1);
+        let kp = Polynomial::random_polynomial_fl(threshold_nodes-1);
         let at_zero = kp.eval(
             &BigInt::from_u8(0).unwrap()
         );
@@ -197,9 +197,9 @@ impl Node {
     }
 
     /// Return this node's secret share * this node's Lagrange basis, evaluated at 0. All nodes' secret_lagrange_basis_at_0() should sum to the shared private key
-    fn secret_lagrange_basis_at_0(&self) -> Fr {
+    fn secret_lagrange_basis_at_0(&self) -> Fl {
         let mut basis = lagrange_basis_at_0(self.idx as u32, self.threshold_nodes as u32);
-        basis.mul_assign(&Fr::from_bigint(&self.keyshare.as_ref().unwrap().share));
+        basis.mul_assign(&Fl::from_bigint(&self.keyshare.as_ref().unwrap().share));
         basis
     }
 
@@ -274,7 +274,7 @@ pub fn decrypt(encrypted: ElGamalEncryption, shares: Vec<Point>, num_shares_need
 mod tests {
     use std::{vec, ops::{Add, Mul}, result};
 
-    use babyjubjub_rs::encrypt_elgamal;
+    use babyjubjub_rs::{encrypt_elgamal, Q};
     use num_bigint::ToBigInt;
 
     use super::*;
@@ -382,9 +382,41 @@ mod tests {
         assert!(d3.equals(d3_));
 
         // Note: this is full decryption and should perhaps be in another file:
+        let modulus =  BigInt::parse_bytes(
+            b"21888242871839275222246405745257275088548364400416034343698204186575808495617",10
+        )
+            .unwrap();
+
+        // Can ignore this; secret key hasd been above modulus regardless of wheter the test succeeds!
+        // println!(
+        //     "secret key is under modulus? \n {:?} \n {:?}", secret_key_nobody_knows, modulus
+        // );
+
+        
+        // println!("LHS\n{:?}\nRHS\n{:?}", d1.add(&d2).add(&d3), B8.mul_scalar(&(secret_key_nobody_knows)).mul_scalar(&nonce));
+        
+        // Delete this part when test working. It just shows that the Lagrange interpolation correctly recovered the secret. However, Lagrange interpolation over elliptic curve is failing half of the time in the next asssert.
+        let secret_key_nobody_knows = 
+            node1.keygen_polynomial_at_0.clone() + 
+            node2.keygen_polynomial_at_0.clone() + 
+            node3.keygen_polynomial_at_0.clone() ;
+        
+        let mut result = node1.secret_lagrange_basis_at_0();
+        result.add_assign(  &node2.secret_lagrange_basis_at_0());
+        result.add_assign(  &node3.secret_lagrange_basis_at_0());
+        
+        assert!(result.eq(&Fr::from_bigint(&secret_key_nobody_knows)));
+        
+        // Why doesn't this work? Shouldn't it wrap around or give the special point?
+        // println!("B8? {:?} {:?} \n {:?} {:?}", B8.x, B8.y, B8.mul_scalar(&(modulus.clone())).x, B8.mul_scalar(&(modulus.clone())).y);
+        // THIS LINE WORKS HALF OF THE TIME????
         assert!(d1.add(&d2).add(&d3).equals(
-            B8.mul_scalar(&secret_key_nobody_knows).mul_scalar(&nonce)
-        ))
+            B8.mul_scalar(&(secret_key_nobody_knows)).mul_scalar(&nonce)
+        ));
+
+        assert!(d1.add(&d2).add(&d3).equals(
+            B8.mul_scalar(&nonce).mul_scalar(&(secret_key_nobody_knows))
+        ));
 
     }
 
