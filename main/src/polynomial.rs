@@ -33,7 +33,7 @@ impl Polynomial {
         let sub_order = SUBORDER.clone(); // Perhaps not most efficient way of doing it but it should be OK
         let mut coeffs: Vec<BigInt> = vec![];
         let mut recent: Vec<u8> = seed.clone();
-        for i in 1..degree+1 {
+        for i in 0..degree+1 {
             let mut h = Blake2b512::new();
             h.update(recent);
             recent = h.finalize().to_vec();
