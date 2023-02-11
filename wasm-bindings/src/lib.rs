@@ -1,4 +1,4 @@
-use std::{str::FromStr, thread::__FastLocalKeyInner};
+use std::{str::FromStr};
 
 use wasm_bindgen::prelude::*;
 use num_bigint::BigInt;
@@ -53,12 +53,19 @@ pub fn encryptPoint(msg_x: String, msg_y: String, pub_x: String, pub_y: String, 
 //     serde_wasm_bindgen::to_value(&d).unwrap()
 // }
 
-#[wasm_bindgen]
-pub fn random_node() -> JsValue {
-    // return some random node to see how it looks in JS
-    let n = Node::init_rnd(1, 3, 5);
-    serde_wasm_bindgen::to_value(&n).unwrap()
-}
+
+// // These two functions can be deleted; they're just for some experimationt
+// #[wasm_bindgen]
+// pub fn random_node() -> JsValue {
+//     // return some random node to see how it looks in JS
+//     let n = Node::init_rnd(1, 3, 5);
+//     serde_wasm_bindgen::to_value(&n).unwrap()
+// }
+// #[wasm_bindgen]
+// pub fn read_node(node: JsValue) -> JsValue {
+//     let n: Node = serde_wasm_bindgen::from_value(node).unwrap();
+//     serde_wasm_bindgen::to_value(&n).unwrap()
+// }
 
 // Gets the keygen result from a seed. This returns the keygen polynomial's evaluation at 2. This should be given to the auditor, at node 2
 // * and should not be shared with anyone else *
@@ -111,7 +118,7 @@ pub fn auditorDecrypt(seed: &[u8], litKeygenEvalAt2: JsValue, encrypted: JsValue
     // let n = Node::init_from_seed(seed, 1, 2, 2);
     let n = Node::init_rnd(1, 2, 2);
     // let k: Vec<KeygenHelper> = serde_wasm_bindgen::from_value(keygenResultsForMe).unwrap();
-    let k: KeygenHelper = serde_wasm_bindgen::from_value(auditorKeygenEvalAt1).unwrap();
+    let k: KeygenHelper = serde_wasm_bindgen::from_value(auditorKeygenEvalAt2).unwrap();
     let e: ElGamalEncryption = serde_wasm_bindgen::from_value(encrypted).unwrap();
     let d1: Point = serde_wasm_bindgen::from_value(litPartialDecryption).unwrap();
 
