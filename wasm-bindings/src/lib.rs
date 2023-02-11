@@ -17,41 +17,48 @@ pub fn enableErrors() {
 }
 
 #[wasm_bindgen]
-pub fn msgToPoint(m: String) -> String {
+pub fn msgToPoint(m: String) -> JsValue {
     let m_big = BigInt::from_str(&m).unwrap();
     let p = Point::from_msg_vartime(&m_big);
-    serde_json::to_string(&p).unwrap()
+    serde_wasm_bindgen::to_value(&p).unwrap()
+    // serde_json::to_string(&p).unwrap()
 }
 
 #[wasm_bindgen]
-pub fn pointToMsg(x: String, y: String) -> String {
-    Point::from_xy_strings(x, y).to_msg().to_dec_string()
+pub fn pointToMsg(point: JsValue) -> JsValue {
+    let p: Point = serde_wasm_bindgen::from_value(point).unwrap();
+    let m = p.to_msg().to_dec_string();
+    serde_wasm_bindgen::to_value(&m).unwrap()
+    // Point::from_xy_strings(x, y).to_msg().to_dec_string()
 }
 
 #[wasm_bindgen]
-pub fn encryptPoint(msg_x: String, msg_y: String, pub_x: String, pub_y: String, nonce: String) -> String {
-    let msg = Point::from_xy_strings(msg_x, msg_y);
-    let pk = Point::from_xy_strings(pub_x, pub_y);
+pub fn encryptPoint(msg: JsValue, pubkey: JsValue, nonce: String) -> JsValue {
+    let m: Point = serde_wasm_bindgen::from_value(msg).unwrap();
+    let p: Point = serde_wasm_bindgen::from_value(pubkey).unwrap();
+    // let msg = Point::from_xy_strings(msg_x, msg_y);
+    // let pk = Point::from_xy_strings(pub_x, pub_y);
     let nonce_big: BigInt = BigInt::from_str(&nonce).unwrap();
-    let e = encrypt_elgamal(&pk, &nonce_big, &msg);
-    serde_json::to_string(&e).unwrap()
+    let e = encrypt_elgamal(&p, &nonce_big, &m);
+    serde_wasm_bindgen::to_value(&e).unwrap()
+    // serde_json::to_string(&e).unwrap()
 }
 
-// #[wasm_bindgen]
-// pub fn partial_decrypt(node: JsValue, msgPoint: JsValue) -> JsValue {
-//     let n: Node = serde_wasm_bindgen::from_value(node).unwrap();
-//     let m: Point = serde_wasm_bindgen::from_value(msgPoint).unwrap();
-//     let d: Point = n.partial_decrypt(&m);
-//     serde_wasm_bindgen::to_value(&d).unwrap()
-// }
+#[wasm_bindgen]
+pub fn decryptShare(node: JsValue, msgPoint: JsValue) -> JsValue {
+    let n: Node = serde_wasm_bindgen::from_value(node).unwrap();
+    let m: Point = serde_wasm_bindgen::from_value(msgPoint).unwrap();
+    let d: Point = n.partial_decrypt(&m);
+    serde_wasm_bindgen::to_value(&d).unwrap()
+}
 
-// #[wasm_bindgen]
-// pub fn decrypt(encryptedMsg: JsValue, decryptShares: JsValue, numSharesNeeded: usize) -> JsValue {
-//     let e: ElGamalEncryption = serde_wasm_bindgen::from_value(encryptedMsg).unwrap();
-//     let s: Vec<Point> = serde_wasm_bindgen::from_value(decryptShares).unwrap();
-//     let d = babyjubjub_elgamal::decrypt(e, s, numSharesNeeded);
-//     serde_wasm_bindgen::to_value(&d).unwrap()
-// }
+#[wasm_bindgen]
+pub fn finalDecrypt(encryptedMsg: JsValue, decryptShares: JsValue, numSharesNeeded: usize) -> JsValue {
+    let e: ElGamalEncryption = serde_wasm_bindgen::from_value(encryptedMsg).unwrap();
+    let s: Vec<Point> = serde_wasm_bindgen::from_value(decryptShares).unwrap();
+    let d = babyjubjub_elgamal::decrypt(e, s, numSharesNeeded as u64);
+    serde_wasm_bindgen::to_value(&d).unwrap()
+}
 
 
 // // These two functions can be deleted; they're just for some experimationt
@@ -95,7 +102,7 @@ pub fn auditorKeygen(seed: &[u8]) -> JsValue {
 #[wasm_bindgen]
 pub fn litDecrypt(seed: &[u8], auditorKeygenEvalAt1: JsValue, encrypted: JsValue) -> JsValue {
     // let n = Node::init_from_seed(seed, 1, 2, 2);
-    let n = Node::init_rnd(1, 2, 2);
+    let mut n = Node::init_rnd(1, 2, 2);
     // let k: Vec<KeygenHelper> = serde_wasm_bindgen::from_value(keygenResultsForMe).unwrap();
     let k: KeygenHelper = serde_wasm_bindgen::from_value(auditorKeygenEvalAt1).unwrap();
     let e: ElGamalEncryption = serde_wasm_bindgen::from_value(encrypted).unwrap();
@@ -116,9 +123,9 @@ pub fn litDecrypt(seed: &[u8], auditorKeygenEvalAt1: JsValue, encrypted: JsValue
 #[wasm_bindgen]
 pub fn auditorDecrypt(seed: &[u8], litKeygenEvalAt2: JsValue, encrypted: JsValue, litPartialDecryption: JsValue) -> JsValue {
     // let n = Node::init_from_seed(seed, 1, 2, 2);
-    let n = Node::init_rnd(1, 2, 2);
+    let mut n = Node::init_rnd(1, 2, 2);
     // let k: Vec<KeygenHelper> = serde_wasm_bindgen::from_value(keygenResultsForMe).unwrap();
-    let k: KeygenHelper = serde_wasm_bindgen::from_value(auditorKeygenEvalAt2).unwrap();
+    let k: KeygenHelper = serde_wasm_bindgen::from_value(litKeygenEvalAt2).unwrap();
     let e: ElGamalEncryption = serde_wasm_bindgen::from_value(encrypted).unwrap();
     let d1: Point = serde_wasm_bindgen::from_value(litPartialDecryption).unwrap();
 
