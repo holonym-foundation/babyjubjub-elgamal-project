@@ -147,6 +147,13 @@ impl Node {
         let kp = Polynomial::random_polynomial_fl(threshold_nodes-1);
         Node::init(idx, kp, total_nodes)
     }
+    /// Creates a Node using a seed for randomness
+    /// degree is degree of the polynomial
+    pub fn init_from_seed(seed: &Vec<u8>, idx: usize, threshold_nodes: usize, total_nodes: usize) -> Node {
+        assert!(idx>0 && idx<=total_nodes, "node index {} must be greater than 0 and <= total_nodes {}", idx, total_nodes);
+        let kp = Polynomial::from_seed(seed, threshold_nodes-1);
+        Node::init(idx, kp, total_nodes)
+    }
     /// Creates a Node using a given keygen Polynomial
     pub fn init(idx: usize, polynomial: Polynomial, total_nodes: usize) -> Node {
         assert!(idx>0, "node index {} must be > 0", idx);

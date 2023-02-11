@@ -78,8 +78,9 @@ pub fn finalDecrypt(encryptedMsg: JsValue, decryptShares: JsValue, numSharesNeed
 // * and should not be shared with anyone else *
 #[wasm_bindgen]
 pub fn litKeygen(seed: &[u8]) -> JsValue {
-    // let n = Node::init_from_seed(seed, 1, 2, 2);
-    let n = Node::init_rnd(1, 2, 2);
+    let as_vec = seed.to_vec();
+    let n = Node::init_from_seed(&as_vec, 1, 2, 2);
+    // let n = Node::init_rnd(1, 2, 2);
     let keygen_evals_for_nodes = n.keygen_step1(2);
     serde_wasm_bindgen::to_value(&keygen_evals_for_nodes[1]).unwrap()
 }
@@ -88,8 +89,9 @@ pub fn litKeygen(seed: &[u8]) -> JsValue {
 // * and should not be shared with anyone else *
 #[wasm_bindgen]
 pub fn auditorKeygen(seed: &[u8]) -> JsValue {
-    // let n = Node::init_from_seed(seed, 1, 2, 2);
-    let n = Node::init_rnd(1, 2, 2);
+    let as_vec = seed.to_vec();
+    let n = Node::init_from_seed(&as_vec, 1, 2, 2);
+    // let n = Node::init_rnd(1, 2, 2);
     let keygen_evals_for_nodes = n.keygen_step1(2);
     serde_wasm_bindgen::to_value(&keygen_evals_for_nodes[0]).unwrap()
 }
@@ -101,8 +103,9 @@ pub fn auditorKeygen(seed: &[u8]) -> JsValue {
 // 3. partially decrypts a msg
 #[wasm_bindgen]
 pub fn litDecrypt(seed: &[u8], auditorKeygenEvalAt1: JsValue, encrypted: JsValue) -> JsValue {
-    // let n = Node::init_from_seed(seed, 1, 2, 2);
-    let mut n = Node::init_rnd(1, 2, 2);
+    let as_vec = seed.to_vec();
+    let mut n = Node::init_from_seed(&as_vec, 1, 2, 2);
+    // let mut n = Node::init_rnd(1, 2, 2);
     // let k: Vec<KeygenHelper> = serde_wasm_bindgen::from_value(keygenResultsForMe).unwrap();
     let k: KeygenHelper = serde_wasm_bindgen::from_value(auditorKeygenEvalAt1).unwrap();
     let e: ElGamalEncryption = serde_wasm_bindgen::from_value(encrypted).unwrap();
