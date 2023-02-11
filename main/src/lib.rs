@@ -2,6 +2,7 @@ use num_bigint::{BigInt};
 use num_traits::{ToPrimitive, FromPrimitive};
 use babyjubjub_rs::{Fr, Fl, Point, ElGamalEncryption, B8, FrBigIntConversion};
 use polynomial::Polynomial;
+use serde::{Serialize, Deserialize};
 use crate::polynomial::lagrange_basis_at_0;
 use ff::{Field};
 
@@ -93,6 +94,8 @@ The message is represented as a point. A variation of the Koblitz encoding metho
 babyjubjub-rs library.
 
 */
+
+#[derive(Serialize,Deserialize)]
 pub struct PrivateKeyShare {
     share: BigInt,
 }
@@ -113,6 +116,7 @@ impl PrivateKeyShare {
 
 
 /// Node representing a party that can do distributed key generation, store their key share, and calculate a decryption share of a ciphertext using their keyshare 
+#[derive(Serialize,Deserialize)]
 pub struct Node {
     /// which number node is it. Starts at 1, not 0, as node 0 doesn't exist. If it did, it would know the secret polynomial evaluated at 0, which is the secret key
     idx: usize, 
@@ -129,6 +133,7 @@ pub struct Node {
 }
 
 // Stores a secret number designated for a particular node
+#[derive(Serialize,Deserialize)]
 pub struct KeygenHelper {
     for_node: usize,
     value: BigInt
