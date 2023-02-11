@@ -8,6 +8,17 @@ use std::ops::Mul;
 use serde::{Serialize, Deserialize};
 
 
+// impl Serialize for Polynomial {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//         where
+//             S: serde::Serializer {
+//                 let mut seq = serializer.serialize_seq(Some(self.coefficients.len()))?;
+//                 self.coefficients.iter().for_each(
+//                     |coef|  { seq.serialize_element(&coef.to_string()); }
+//                 );
+//                 seq.end()
+//             }
+// }
 
 #[derive(Serialize, Deserialize)]
 pub struct Polynomial {

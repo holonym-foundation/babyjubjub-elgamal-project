@@ -160,7 +160,7 @@ impl Node {
         let at_zero = polynomial.eval(
             &BigInt::from_u8(0).unwrap()
         );
-        println!("degree is {}", polynomial.deg());
+
         Node {
             idx: idx,
             threshold_nodes: polynomial.deg() + 1,
