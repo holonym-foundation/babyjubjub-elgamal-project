@@ -1,10 +1,9 @@
 use num_bigint::{RandBigInt, BigInt};
 use num_traits::{FromPrimitive};
 use babyjubjub_rs::{Fl, SUBORDER};
-use blake2::{Blake2b512, Digest};
-// use babyjubjub_rs::{Fr, Point, ElGamalEncryption, B8, FrBigIntConversion};
+// use blake2::{Blake2b512, Digest};
 use ff::{Field, PrimeField};
-use num_bigint::Sign;
+// use num_bigint::Sign;
 use std::ops::Mul;
 use serde::{Serialize, Deserialize};
 
@@ -29,19 +28,19 @@ impl Polynomial {
         Polynomial { coefficients: coeffs }
     }
 
-    /// Genereates polynomial from a random seed by repeatedly hashing it to get eeach new coefficient
-    pub fn from_seed(seed: &[u8], degree: usize) -> Polynomial {
-        let mut coeffs: Vec<BigInt> = vec![];
-        let mut recent = seed;
-        for i in 1..degree+1 {
-            let mut h = Blake2b512::new();
-            h.update(recent);
-            recent = h.finalize();
-            let as_bigint = BigInt::from_bytes_be(Sign::Plus, &recent);
-            coeffs.push(as_bigint % SUBORDER);
-        }
-        Polynomial::from_coeffs(coeffs)
-    }
+    // /// Genereates polynomial from a random seed by repeatedly hashing it to get eeach new coefficient
+    // pub fn from_seed(seed: &[u8], degree: usize) -> Polynomial {
+    //     let mut coeffs: Vec<BigInt> = vec![];
+    //     let mut recent = seed;
+    //     for i in 1..degree+1 {
+    //         let mut h = Blake2b512::new();
+    //         h.update(recent);
+    //         recent = h.finalize();
+    //         let as_bigint = BigInt::from_bytes_be(Sign::Plus, &recent);
+    //         coeffs.push(as_bigint % SUBORDER);
+    //     }
+    //     Polynomial::from_coeffs(coeffs)
+    // }
 
     pub fn eval(&self, x: &BigInt) -> BigInt{
         self.coefficients.iter().enumerate().map(
