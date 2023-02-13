@@ -1,6 +1,7 @@
 {
     "scripts": {
-        "build": "webpack",
+        "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --out-dir=bindings --target=web --omit-default-module-path ../target/wasm32-unknown-unknown/release/elgamal_babyjubjub.wasm && webpack",
+        "build-just-webpack": "webpack",
         "serve": "webpack serve"
     },
     "devDependencies": {
@@ -11,5 +12,8 @@
         "webpack": "^5.49.0",
         "webpack-cli": "^4.7.2",
         "webpack-dev-server": "^3.11.2"
+    },
+    "browser": {
+        "crypto": false
     }
 }

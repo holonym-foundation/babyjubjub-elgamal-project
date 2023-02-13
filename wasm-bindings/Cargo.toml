@@ -11,7 +11,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2"
+wasm-bindgen = "0.2.84"
 babyjubjub-elgamal = { path = "../main"}
 babyjubjub-rs = { path = "../babyjubjub-rs"}
 getrandom = { version = "0.2", features = ["js"] }
