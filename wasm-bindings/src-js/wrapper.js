@@ -1,27 +1,37 @@
-// https://stackoverflow.com/a/71673305/14039774 is gold 
-import init from '../bindings/elgamal_babyjubjub';
+// This is gold https://stackoverflow.com/a/71673305/14039774
+import init, { enableErrors, msgToPoint /* other stuff */ } from '../bindings/elgamal_babyjubjub';
 import wasmData from '../bindings/elgamal_babyjubjub_bg.wasm';
 const { randomBytes } = require("crypto");
+// console.log(Buffer.from(wasmData))
+// let rust = init(wasmData);
+try {
+  init(wasmData).then(x=>console.log(msgToPoint("0")))
+} catch {
+  console.error("there was an errror")
+}
 
-const b = init(wasmData);
+// console.log(rust);
+// const rust_ = init(wasmData);
+// rust_.then(x=>console.log(x.enableErrors()))
 // let rust = null;
 
-// async function init () {
+// async function load () {
 //   if(rust) {
 //     return 
 //   } else {
-//     b = await rust_;
-//     console.log("b", b.enableErrors)
-//     console.log("msgToPoint", b.msgToPoint);
-//     try {
-//       console.log(b.msgToPoint("69"))
-//       // b.enableErrors();
-//     } catch(err) {
-//       console.error("err", Object.keys(err))
-//     }
+//     rust = await rust_;
+//     console.log("b", rust.msgToPoint("69"))
+
+//     // try {
+//     //   console.log(b.msgToPoint("69"))
+//     //   // b.enableErrors();
+//     // } catch(err) {
+//     //   console.error("err", Object.keys(err))
+//     // }
 //   }
 // }
 
+// load();
 // class Lit {
 //     // Seed is a U8Array / Buffer
 //     constructor(seed) {

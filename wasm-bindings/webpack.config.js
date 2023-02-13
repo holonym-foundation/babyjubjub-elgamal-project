@@ -17,17 +17,17 @@ module.exports = {
                     configFile: 'tsconfig.json',
                 },
             },
+        ],
+        defaultRules: [
             {
                 test: /\.wasm$/,
                 type: "asset/inline",
             },
-        ],
-    //     defaultRules: [
-    //         // {
-    //         //     test: /\.wasm$/,
-    //         //     loader: 'raw-loader',
-    //         // }
-    //     ]
+            // {
+            //     test: /\.wasm$/,
+            //     loader: 'raw-loader',
+            // }
+        ]
     },
     plugins: [
         new WasmPackPlugin({
