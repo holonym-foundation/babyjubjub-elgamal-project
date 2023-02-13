@@ -1,12 +1,13 @@
 const path = require('path');
+const glob = require('glob');
 const webpack = require('webpack');
-const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
+const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin');
 
 module.exports = {
-    entry: './src-js/index.js',
+    entry: process.env.HOLONYM_TEST === 'true' ? glob.sync('./test-js/*.js') : './src-js/index.js',
     output: {
         // path: path.resolve(__dirname, 'dist'),
-        filename: 'main.js',
+        filename: process.env.HOLONYM_TEST === 'true' ? 'test.js' : 'main.js',
     },
     module: {
         rules: [

@@ -2,10 +2,12 @@
     "scripts": {
         "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --out-dir=bindings --target=web --omit-default-module-path ../target/wasm32-unknown-unknown/release/elgamal_babyjubjub.wasm && webpack",
         "build-just-webpack": "webpack",
-        "serve": "webpack serve"
+        "serve": "webpack serve",
+        "test": "HOLONYM_TEST=true npm run build && node dist/test.js"
     },
     "devDependencies": {
         "@wasm-tool/wasm-pack-plugin": "1.5.0",
+        "glob": "^8.1.0",
         "html-webpack-plugin": "^5.3.2",
         "raw-loader": "^4.0.2",
         "text-encoding": "^0.7.0",
