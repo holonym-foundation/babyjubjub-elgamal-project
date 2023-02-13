@@ -135,8 +135,8 @@ pub struct Node {
 // Stores a secret number designated for a particular node
 #[derive(Serialize,Deserialize)]
 pub struct KeygenHelper {
-    for_node: usize,
-    value: BigInt
+    pub for_node: usize,
+    pub value: BigInt
 }
 
 impl Node {

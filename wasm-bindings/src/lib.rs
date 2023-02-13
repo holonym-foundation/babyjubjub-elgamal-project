@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use num_bigint::BigInt;
 use babyjubjub_rs::{Point, ToDecimalString, ElGamalEncryption, encrypt_elgamal, PrivateKey};
 
-use babyjubjub_elgamal::{self, Node, KeygenHelper, decrypt};
+use babyjubjub_elgamal::{self, Node, KeygenHelper, decrypt, calculate_pubkey};
 extern crate console_error_panic_hook;
 use std::panic;
 
@@ -44,13 +44,13 @@ pub fn encryptPoint(msg: JsValue, pubkey: JsValue, nonce: String) -> JsValue {
     // serde_json::to_string(&e).unwrap()
 }
 
-#[wasm_bindgen]
-pub fn decryptShare(node: JsValue, msgPoint: JsValue) -> JsValue {
-    let n: Node = serde_wasm_bindgen::from_value(node).unwrap();
-    let m: Point = serde_wasm_bindgen::from_value(msgPoint).unwrap();
-    let d: Point = n.partial_decrypt(&m);
-    serde_wasm_bindgen::to_value(&d).unwrap()
-}
+// #[wasm_bindgen]
+// pub fn decryptShare(node: JsValue, msgPoint: JsValue) -> JsValue {
+//     let n: Node = serde_wasm_bindgen::from_value(node).unwrap();
+//     let m: Point = serde_wasm_bindgen::from_value(msgPoint).unwrap();
+//     let d: Point = n.partial_decrypt(&m);
+//     serde_wasm_bindgen::to_value(&d).unwrap()
+// }
 
 #[wasm_bindgen]
 pub fn finalDecrypt(encryptedMsg: JsValue, decryptShares: JsValue, numSharesNeeded: usize) -> JsValue {
@@ -89,7 +89,6 @@ pub fn read_node(node: JsValue) -> JsValue {
 pub fn litKeygen(seed: &[u8]) -> JsValue {
     let as_vec = seed.to_vec();
     let n = Node::init_from_seed(&as_vec, 1, 2, 2);
-    // let n = Node::init_rnd(1, 2, 2);
     let keygen_evals_for_nodes = n.keygen_step1(2);
     serde_wasm_bindgen::to_value(&keygen_evals_for_nodes[1]).unwrap()
 }
@@ -99,8 +98,7 @@ pub fn litKeygen(seed: &[u8]) -> JsValue {
 #[wasm_bindgen]
 pub fn auditorKeygen(seed: &[u8]) -> JsValue {
     let as_vec = seed.to_vec();
-    let n = Node::init_from_seed(&as_vec, 1, 2, 2);
-    // let n = Node::init_rnd(1, 2, 2);
+    let n = Node::init_from_seed(&as_vec, 2, 2, 2);
     let keygen_evals_for_nodes = n.keygen_step1(2);
     serde_wasm_bindgen::to_value(&keygen_evals_for_nodes[0]).unwrap()
 }
@@ -108,46 +106,73 @@ pub fn auditorKeygen(seed: &[u8]) -> JsValue {
 
 // This is what the Lit Protocol PKP doeswhenever called : 
 // 1. instantiates a node based on some deterministic but secret seed Lit protocol will provide
-// 2. sets the keygen polynomial based on the other party's keygen result
+// 2. sets the keygen polynomial based on this party's the other party's keygen result
 // 3. partially decrypts a msg
 #[wasm_bindgen]
-pub fn litDecrypt(seed: &[u8], auditorKeygenEvalAt1: JsValue, encrypted: JsValue) -> JsValue {
+pub fn litDecrypt(seed: &[u8], auditorKeygenEvalAt1: JsValue, encryptedC1: JsValue) -> JsValue {
     let as_vec = seed.to_vec();
     let mut n = Node::init_from_seed(&as_vec, 1, 2, 2);
-    // let mut n = Node::init_rnd(1, 2, 2);
-    // let k: Vec<KeygenHelper> = serde_wasm_bindgen::from_value(keygenResultsForMe).unwrap();
     let k: KeygenHelper = serde_wasm_bindgen::from_value(auditorKeygenEvalAt1).unwrap();
-    let e: ElGamalEncryption = serde_wasm_bindgen::from_value(encrypted).unwrap();
+    let e: Point = serde_wasm_bindgen::from_value(encryptedC1).unwrap();
 
-    n.set_keyshare(&vec![&k]);
-    // Convert Vec<KeygenHelper> to Vec<&KeygenHelper> to use for set_keyshare:
-    // n.set_keyshare(&k.iter().map(|x|x).collect());
-    
+    let my_keygen_result = &n.keygen_step1(2)[0];
+    n.set_keyshare(&vec![&my_keygen_result,&k]);
 
-    let result = n.partial_decrypt(&e.c1);
+    let result = n.partial_decrypt(&e);
     serde_wasm_bindgen::to_value(&result).unwrap()
 }
 
 // This is what the Auditor doeswhenever called : 
 // 1. instantiates a node based on some secret key seed
-// 2. sets the keygen polynomial based on the other party's keygen result
+// 2. sets the keygen polynomial based on this party and the other party's keygen result
 // 3. fully decrypts a message
 #[wasm_bindgen]
 pub fn auditorDecrypt(seed: &[u8], litKeygenEvalAt2: JsValue, encrypted: JsValue, litPartialDecryption: JsValue) -> JsValue {
-    // let n = Node::init_from_seed(seed, 1, 2, 2);
-    let mut n = Node::init_rnd(1, 2, 2);
-    // let k: Vec<KeygenHelper> = serde_wasm_bindgen::from_value(keygenResultsForMe).unwrap();
+    let as_vec = seed.to_vec();
+    let mut n = Node::init_from_seed(&as_vec, 2, 2, 2);
     let k: KeygenHelper = serde_wasm_bindgen::from_value(litKeygenEvalAt2).unwrap();
     let e: ElGamalEncryption = serde_wasm_bindgen::from_value(encrypted).unwrap();
     let d1: Point = serde_wasm_bindgen::from_value(litPartialDecryption).unwrap();
 
-
-    n.set_keyshare(&vec![&k]);
+    let my_keygen_result = &n.keygen_step1(2)[1];
+    n.set_keyshare(&vec![&my_keygen_result,&k]);
 
     let d2 = n.partial_decrypt(&e.c1);
 
     let decrypted = decrypt(e, vec![d1,d2], 2);
     serde_wasm_bindgen::to_value(&decrypted).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn auditorPubkeyShare(seed: &[u8], litKeygenEvalAt2: JsValue) -> JsValue {
+    let as_vec = seed.to_vec();
+    let mut n = Node::init_from_seed(&as_vec, 2, 2, 2);
+    let k: KeygenHelper = serde_wasm_bindgen::from_value(litKeygenEvalAt2).unwrap();
+
+    let my_keygen_result = &n.keygen_step1(2)[1];
+    n.set_keyshare(&vec![&my_keygen_result,&k]);
+
+    let pks = n.pubkey_share();
+    serde_wasm_bindgen::to_value(&pks).unwrap()
+}
+#[wasm_bindgen]
+pub fn litPubkeyShare(seed: &[u8], auditorKeygenEvalAt1: JsValue) -> JsValue {
+    let as_vec = seed.to_vec();
+    let mut n = Node::init_from_seed(&as_vec, 1, 2, 2);
+    let k: KeygenHelper = serde_wasm_bindgen::from_value(auditorKeygenEvalAt1).unwrap();
+    
+    let my_keygen_result = &n.keygen_step1(2)[0];
+    n.set_keyshare(&vec![&my_keygen_result,&k]);
+
+    let pubkey = n.pubkey_share();
+    serde_wasm_bindgen::to_value(&pubkey).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn sharedPubkey(pubkeyShares: JsValue) -> JsValue {
+    let s: Vec<Point> = serde_wasm_bindgen::from_value(pubkeyShares).unwrap();
+    let result = calculate_pubkey(s).unwrap();
+    serde_wasm_bindgen::to_value(&result).unwrap()
 }
 
 /* For standard, nonthreshold ElGamal: */

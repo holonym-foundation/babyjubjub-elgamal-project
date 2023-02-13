@@ -41,6 +41,7 @@ impl Polynomial {
 
     /// Genereates polynomial from a random seed by repeatedly hashing it to get eeach new coefficient
     pub fn from_seed(seed: &Vec<u8>, degree: usize) -> Polynomial {
+        assert!(seed.len() == 32, "seed must be 32 bytes");
         let sub_order = SUBORDER.clone(); // Perhaps not most efficient way of doing it but it should be OK
         let mut coeffs: Vec<BigInt> = vec![];
         let mut recent: Vec<u8> = seed.clone();
