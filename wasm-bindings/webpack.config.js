@@ -3,7 +3,7 @@ const webpack = require('webpack');
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 
 module.exports = {
-    entry: './src-js/wrapper.js', //index.js
+    entry: './src-js/index.js',
     output: {
         // path: path.resolve(__dirname, 'dist'),
         filename: 'main.js',

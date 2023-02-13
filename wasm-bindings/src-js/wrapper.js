@@ -1,110 +1,85 @@
 // This is gold https://stackoverflow.com/a/71673305/14039774
-import init, { enableErrors, msgToPoint /* other stuff */ } from '../bindings/elgamal_babyjubjub';
+import init, { enableErrors, auditorKeygen, auditorDecrypt, litKeygen, litDecrypt, msgToPoint, pointToMsg, litPubkeyShare, auditorPubkeyShare, sharedPubkey, node_from_seed, random_node, read_node, encryptPoint } from '../bindings/elgamal_babyjubjub';
 import wasmData from '../bindings/elgamal_babyjubjub_bg.wasm';
 const { randomBytes } = require("crypto");
 // console.log(Buffer.from(wasmData))
-// let rust = init(wasmData);
-try {
-  init(wasmData).then(x=>console.log(msgToPoint("0")))
-} catch {
-  console.error("there was an errror")
+let loaded = false;
+let rust = init(wasmData);
+
+async function waitTilLoaded () {
+  if(loaded) {
+    return 
+  } else {
+    await rust;
+    loaded = true;
+  }
 }
 
-// console.log(rust);
-// const rust_ = init(wasmData);
-// rust_.then(x=>console.log(x.enableErrors()))
-// let rust = null;
+export class Lit {
+    // Seed is a U8Array / Buffer
+    constructor(seed) {
+        this.seed = seed;
+    }
 
-// async function load () {
-//   if(rust) {
-//     return 
-//   } else {
-//     rust = await rust_;
-//     console.log("b", rust.msgToPoint("69"))
+    // Results from Lit and Auditor keygen can be combined to create keyshares
+    async keygen () {
+      await waitTilLoaded();
+      return litKeygen(this.seed);
+    }
 
-//     // try {
-//     //   console.log(b.msgToPoint("69"))
-//     //   // b.enableErrors();
-//     // } catch(err) {
-//     //   console.error("err", Object.keys(err))
-//     // }
-//   }
-// }
-
-// load();
-// class Lit {
-//     // Seed is a U8Array / Buffer
-//     constructor(seed) {
-//         this.seed = seed;
-//     }
-
-//     // Results from Lit and Auditor keygen can be combined to create keyshares
-//     async keygen () {
-//       await init();
-//       return rust.litKeygen(this.seed);
-//     }
-
-//     async pubkey (auditorKeygenForMe) {
-//         await init();
-//         return rust.litPubkeyShare(this.seed, auditorKeygenForMe); 
-//     }
+    async pubkey (auditorKeygenForMe) {
+        await waitTilLoaded();
+        return litPubkeyShare(this.seed, auditorKeygenForMe); 
+    }
     
-//     async partialDecrypt (auditorKeygenForMe, encrypted) {
-//         await init();
-//         return rust.litDecrypt(this.seed, auditorKeygenForMe, encrypted);
-//     }
+    async partialDecrypt (auditorKeygenForMe, encrypted) {
+        await waitTilLoaded();
+        return litDecrypt(this.seed, auditorKeygenForMe, encrypted);
+    }
     
-// }
+}
 
-// class Auditor {
-//     // Seed is a U8Array / Buffer
-//     constructor(seed) {
-//         this.seed = seed;
-//     }
+export class Auditor {
+    // Seed is a U8Array / Buffer
+    constructor(seed) {
+        this.seed = seed;
+    }
 
-//     // Results from Lit and Auditor keygen() can be combined to create keyshares
-//     async keygen () {
-//       await init();
-//       return rust.auditorKeygen(this.seed);
-//     }
+    // Results from Lit and Auditor keygen() can be combined to create keyshares
+    async keygen () {
+      await waitTilLoaded();
+      return auditorKeygen(this.seed);
+    }
 
-//     async pubkey (litKeygenForMe) {
-//       await init();
-//       return rust.auditorPubkeyShare(this.seed, litKeygenForMe); 
-//     }
+    async pubkey (litKeygenForMe) {
+      await waitTilLoaded();
+      return auditorPubkeyShare(this.seed, litKeygenForMe); 
+    }
     
-//     async decrypt (litKeygenForMe, encrypted, litPartialDecryption) {
-//       await init();
-//       let decrypted = rust.auditorDecrypt(this.seed, litKeygenForMe, encrypted, litPartialDecryption);
-//       return rust.pointToMsg(decrypted);
-//     }
+    async decrypt (litKeygenForMe, encrypted, litPartialDecryption) {
+      await waitTilLoaded();
+      let decrypted = auditorDecrypt(this.seed, litKeygenForMe, encrypted, litPartialDecryption);
+      return pointToMsg(decrypted);
+    }
 
-// }
+}
 
-// class Encryption {
-//     constructor(litPubkey, auditorPubkey) {
-//         this.toPubkey = rust.sharedPubkey([litPubkey, auditorPubkey]);
-//     }
+export class Encryption {
+    constructor(litPubkey, auditorPubkey) {
+        this.toPubkey = sharedPubkey([litPubkey, auditorPubkey]);
+    }
 
-//     // msg is a string
-//     async encrypt(msg) {
-//         await init();
-//         const pt = rust.msgToPoint(msg);
-//         // Nonce should be 64 bytes for optimal randomness. However, it probably doesn't matter
-//         const nonce = BigInt("0x"+randomBytes(64).toString("hex")).toString();
-//         return {
-//             message: msg,
-//             messageAsPoint: pt,
-//             encrypted: rust.encryptPoint(pt, await this.toPubkey, nonce)
-//         }
-//     }
+    // msg is a string
+    async encrypt(msg) {
+        await waitTilLoaded();
+        const pt = msgToPoint(msg);
+        // Nonce should be 64 bytes for optimal randomness. However, it probably doesn't matter
+        const nonce = BigInt("0x"+randomBytes(64).toString("hex")).toString();
+        return {
+            message: msg,
+            messageAsPoint: pt,
+            encrypted: encryptPoint(pt, await this.toPubkey, nonce)
+        }
+    }
     
-// }
-
-
-// module.exports = {
-//     init: init,
-//     Auditor: Auditor,
-//     Lit: Lit,
-//     Encryption: Encryption,
-// }
+}
