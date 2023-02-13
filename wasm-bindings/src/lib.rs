@@ -1,3 +1,6 @@
+/* NOTE: i was not aware wasm_bindgen had such robust support for structs when making this. Hence, everything is pretty functional! 
+   TODO: utilize that feature to have a nicer interface with structs. Unless perhaps this can lend to easier formal verification? But there's some non-functoinal stuff behind the scenes -- probably not!
+ */
 use std::{str::FromStr};
 
 use wasm_bindgen::prelude::*;
