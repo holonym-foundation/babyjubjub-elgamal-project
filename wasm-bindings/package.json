@@ -18,5 +18,10 @@
     },
     "browser": {
         "crypto": false
+    },
+    "dependencies": {
+        "dotenv": "^16.0.3",
+        "ethers": "^6.0.3",
+        "lit-js-sdk": "^1.2.63"
     }
 }
