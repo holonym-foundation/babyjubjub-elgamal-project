@@ -1,4 +1,5 @@
 # BabyJubJub ElGamal with option for MPC decryption
+Note that GitHub gives the wrong link for the babyjubjub-rs submodule...it may be a bug in GitHub. If the submodule isn't successfully cloned or viewed, please use https://github.com/holonym-foundation/babyjubjub-rs-with-elgamal.git
 ## Notes on Security
 - no gaurantees of constant time
 - ElGamal homomorphic properties enable the recovery of encrypted messages by an attacker through chosen ciphertext attack:
