@@ -1,0 +1,11 @@
+{
+  "name": "threshold-eg-babyjub",
+  "version": "0.0.0",
+  "description": "threshold ElGamal encryption over BabyJubJub curve",
+  "main": "threshold-eg-babyjub.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Nanak Nihal Khalsa <nanak@holonym.id>",
+  "license": "ISC"
+}

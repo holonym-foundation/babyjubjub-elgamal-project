@@ -3,7 +3,7 @@
         "build": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen --out-dir=bindings --target=web --omit-default-module-path ../target/wasm32-unknown-unknown/release/elgamal_babyjubjub.wasm && webpack",
         "build-just-webpack": "webpack",
         "serve": "webpack serve",
-        "test": "HOLONYM_TEST=true npm run build && npx mocha dist/test.js"
+        "test": "HOLONYM_BUILD_MODE=test npm run build && npx mocha dist/test.js"
     },
     "devDependencies": {
         "@wasm-tool/wasm-pack-plugin": "1.5.0",

@@ -3,12 +3,37 @@ const glob = require('glob');
 const webpack = require('webpack');
 const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin');
 
+let entry;
+let output;
+switch(process.env.HOLONYM_BUILD_MODE) {
+    case 'test':
+        entry = glob.sync('./test-js/*.js');
+        output = { filename: 'test.js' };
+        break;
+    case 'lit':
+        entry = './src-js/lit-index.js';
+        output = { filename: 'lit-standalone-script.js' };
+        break;
+    // By default, build a library from wrapper.js using these guidelines https://webpack.js.org/guides/author-libraries/
+    default:
+        entry = './src-js/wrapper.js';
+        output = { 
+            globalObject: 'this',
+            filename: 'node-package/threshold-eg-babyjub.js',
+            library : {
+                name: 'threshold-eg-babyjub',
+                type: 'umd'
+            },
+        };
+        break;
+}
 module.exports = {
-    entry: process.env.HOLONYM_TEST === 'true' ? glob.sync('./test-js/*.js') : './src-js/index.js',
-    output: {
-        // path: path.resolve(__dirname, 'dist'),
-        filename: process.env.HOLONYM_TEST === 'true' ? 'test.js' : 'main.js',
-    },
+    entry: entry,
+    output: output,
+    // output: {
+    //     // path: path.resolve(__dirname, 'dist'),
+    //     filename: output
+    // },
     module: {
         rules: [
             {

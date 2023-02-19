@@ -34,6 +34,8 @@ const code = `const go = async () => {
     const litNodeClient = new LitJsSdk.LitNodeClient({ litNetwork: "serrano" });
     // const authSig = await LitJsSdk.checkAndSignMessage
     const toSign = "this is a message that should be signed"
-    constructAuthsig(toSign).then(as=>console.log(as))
+    await constructAuthsig(toSign);
     await litNodeClient.connect();
   }
+
+  run.then(x=>console.log(x))

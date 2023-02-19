@@ -81,5 +81,16 @@ export class Encryption {
             encrypted: encryptPoint(pt, await this.toPubkey, nonce)
         }
     }
-    
+}
+
+export class Utils {
+  static async msgToPoint(msg) {
+    await waitTilLoaded();
+    return msgToPoint(msg);
+  }
+
+  static async pointToMsg(pt) {
+    await waitTilLoaded();
+    return msgToPoint(msg);
+  }
 }
