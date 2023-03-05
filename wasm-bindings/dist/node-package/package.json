@@ -1,6 +1,6 @@
 {
   "name": "threshold-eg-babyjub",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "threshold ElGamal encryption over BabyJubJub curve",
   "main": "threshold-eg-babyjub.js",
   "scripts": {

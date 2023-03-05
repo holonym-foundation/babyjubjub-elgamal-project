@@ -11,12 +11,13 @@ const code = `const go = async () => {
     const toSign = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100];
     // this requests a signature share from the Lit Node
     // the signature share will be automatically returned in the HTTP response from the node
-    const sigShare = await Lit.Actions.signEcdsa({
-      toSign,
-      publicKey:
-        "0x04ea2311963bd543e9817b4ad1e7bf8185d42e26a2668d31097cd860ef70a5929322eb4e7a5fe2bf9721c11927dd1317d9267e8320b92f388ac7441368bc91db0d",
-      sigName: "sig1",
-    });
+    // const sigShare = await Lit.Actions.signEcdsa({
+    //   toSign,
+    //   publicKey:
+    //     "0x04ea2311963bd543e9817b4ad1e7bf8185d42e26a2668d31097cd860ef70a5929322eb4e7a5fe2bf9721c11927dd1317d9267e8320b92f388ac7441368bc91db0d",
+    //   sigName: "sig1",
+    // });
+    Lit.Actions.setResponse({response: "hey"})
   };
   
   go();`
@@ -51,7 +52,7 @@ const code = `const go = async () => {
     },
   ];
 const run = async () => {
-  const litNodeClient = new LitJsSdk.LitNodeClient({ litNetwork: "serrano", debug: true });
+  const litNodeClient = new LitJsSdk.LitNodeClient({ litNetwork: "jalapeno", debug: true });
   await litNodeClient.connect();
 
   const authSig = await constructAuthsig();
@@ -66,7 +67,7 @@ const run = async () => {
     //   chain
     // }
   });
-  // console.log("recieved", results);
+  console.log("recieved", results);
 
 
 }
