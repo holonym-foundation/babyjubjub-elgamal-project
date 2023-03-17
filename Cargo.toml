@@ -1,6 +1,6 @@
 [workspace]
 members = [
     "main",
-    "babyjubjub-rs",
+    "babyjubjub-rs-with-elgamal",
     "wasm-bindings"
 ]

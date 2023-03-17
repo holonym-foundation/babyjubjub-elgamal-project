@@ -12,7 +12,7 @@ edition = "2021"
 [dependencies]
 ff = { package="ff_ce", version= "0.11", features = ["derive"] }
 ff_ce = { version="0.14.3", features = ["derive"] }
-babyjubjub-rs = { version = "0.0.10", path = "../babyjubjub-rs", default-features = true }
+babyjubjub-rs = { version = "0.0.10", path = "../babyjubjub-rs-with-elgamal", default-features = true }
 num-bigint = { version = "0.4", features = ["serde", "rand"] }
 hex = "0.4"
 time = "0.1"
