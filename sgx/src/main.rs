@@ -44,7 +44,8 @@ fn egetkey(label: [u8; 16], seal_data: &SealData) -> Result<[u8; 16], ErrorCode>
     }.egetkey()
 }
 
-pub fn get_seal_key_for_label(label: [u8; 16]) -> ([u8; 16], SealData) {
+// Returns the corresponding seal key *and* what should be stored outside the enclave for unsealing later
+pub fn get_seal_key_for_label(label: [u8; 16]) -> ([u8; 16], Seal) {
     let report = Report::for_self();
 
     let seal_data = SealData {
@@ -55,7 +56,7 @@ pub fn get_seal_key_for_label(label: [u8; 16]) -> ([u8; 16], SealData) {
         // miscselect: report.miscselect
     };
     // Return the key and data to to store alongside the label
-    (egetkey(label, &seal_data).unwrap(), seal_data)
+    (egetkey(label, &seal_data).unwrap(), Seal {label:label, seal_data:seal_data})
 }
 
 pub fn recover_seal_key(s: Seal) -> Result<[u8; 16], ErrorCode> {
@@ -74,7 +75,10 @@ fn main() {
     // Seal key:
     let key: [u8; 16];
     match args.len() {
-        0 => 
+        0 => {
+            todo!()
+        }
+        _ => todo!()
     }
     let r: [u8; 16] = random();
     let mut recoverd = r.to_vec();
@@ -94,11 +98,7 @@ mod tests {
         // 1. create key & serialize its seal
         // Some label for the key
         let label: [u8; 16] = [69; 16];
-        let (key, seal_data) = get_seal_key_for_label(label);
-        let seal = Seal {
-            label: label,
-            seal_data: seal_data
-        };
+        let (key, seal) = get_seal_key_for_label(label);
         let ser_seal: String = serde_json::to_string(&seal).unwrap();
         
         // 2. Deserialize and recover key
