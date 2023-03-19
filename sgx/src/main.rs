@@ -2,7 +2,13 @@ use sgx_isa::{Attributes, Miscselect, ErrorCode, Keyname, Keypolicy, Keyrequest,
 use rand::random;
 extern crate serde;
 use serde::{Serialize, Deserialize};
-
+use aes_gcm::{
+    aead::{Aead, KeyInit, OsRng},
+    Aes256Gcm, Nonce, Key // Or `Aes128Gcm`
+};
+use generic_array::{GenericArray, ArrayLength};
+use babyjubjub_rs::{Point, ToDecimalString, ElGamalEncryption, encrypt_elgamal, PrivateKey};
+// use babyjubjub_elgamal::{Node, KeygenHelper, decrypt, calculate_pubkey};
 
 // For key sealing
 #[derive(Debug, Serialize, Deserialize)]
@@ -68,8 +74,38 @@ pub fn recover_seal_key(s: Seal) -> Result<[u8; 16], ErrorCode> {
 }
 
 fn main() {
-    // TODO: put this in test
-    println!("heyyyyyy.");
+    let r: [u8; 32] = random();
+    let p = PrivateKey::import(r.to_vec()).unwrap();
+    // let cipher = Aes256Gcm::new(&GenericArray::from_slice(&r));
+    // let nonce_slice = b"nonce to encrypt private key with sealing key";
+    // let nonce = Nonce::from_slice(nonce_slice);
+    println!("heyyyyyy, {:?}", p.public());
+
+
+    use crypto::aes_gcm::AesGcm;
+    use crypto::aead::{AeadDecryptor, AeadEncryptor};
+    let key_size = crypto::aes::KeySize::KeySize128;
+    let key: [u8; 16] = random();
+    let iv: [u8; 16] = random();
+    let additional_data = [0 as u8; 16];
+    let plaintext = [69 as u8; 32];
+    let enc_cipher = AesGcm::new(key_size, &key, &iv, &additional_data);
+    let out = [0 as u8; 16];
+    let out_tag = [0 as u8; 16];
+    let ciphertext = cipher.encrypt(&plaintext, &mut out[..],&mut out_tag[..]);
+    
+    let dec_cipher = AesGcm::new(key_size, &key, &iv, &additional_data);
+
+    // use aes_gcm_siv::{
+    //     aead::{Aead, KeyInit, OsRng},
+    //     Aes256GcmSiv, Nonce // Or `Aes128GcmSiv`
+    // };
+
+    // let cipher = Aes256GcmSiv::new(&key);
+    // let nonce = Nonce::from_slice(b"unique nonce"); // 96-bits; unique per message
+    // let ciphertext = cipher.encrypt(nonce, b"plaintext message".as_ref()).unwrap();
+    // let plaintext = cipher.decrypt(nonce, ciphertext.as_ref()).unwrap();
+    // assert_eq!(&plaintext, b"plaintext message");    
 }
 
 #[cfg(test)]

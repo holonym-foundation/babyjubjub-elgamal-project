@@ -1,0 +1,8 @@
+[build]
+target = "x86_64-fortanix-unknown-sgx"
+
+[run]
+target = "x86_64-fortanix-unknown-sgx"
+
+[test]
+target = "x86_64-fortanix-unknown-sgx"
