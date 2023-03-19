@@ -6,3 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+sgx-isa = { version = "0.2", features = ["sgxstd"] }
+rand = "0.6.4"
+serde = { version = "1.0.157", features = ["derive"] }
+serde_json = "1.0.94"
+# libp2p = "0.51.1"
+# hyper = { version = "1.0.0-rc.3", features = ["full"] }
+
