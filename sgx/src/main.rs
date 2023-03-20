@@ -6,6 +6,8 @@ use serde::{Serialize, Deserialize};
 use babyjubjub_rs::{Point, ToDecimalString, ElGamalEncryption, encrypt_elgamal, PrivateKey};
 // use babyjubjub_elgamal::{Node, KeygenHelper, decrypt, calculate_pubkey};
 use std::env;
+mod customtls;
+
 // For key sealing
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Seal {
@@ -72,6 +74,15 @@ pub fn recover_seal_key(s: Seal) -> Result<[u8; 16], ErrorCode> {
 
 // First argument should be empty if new private key is to be generated. Otherwise, it should be the seal of the private key to be used, as a JSON representation of the Seal object
 fn main() {
+    // use hyper::{Client, Uri};
+
+    // let client = Client::new();
+
+    // let res = client
+    //     .get(Uri::from_static("http://httpbin.org/ip"));
+
+    // 
+    // println!("WOW, HERE IS THE EXTERNAL FUNCTION {}", customtls::hey());
     let args: Vec<String> = env::args().collect();
     // Seal key:
     let key: [u8; 16];

@@ -17,12 +17,19 @@ sgx-isa = { version = "0.2", features = ["sgxstd"] }
 rand = "0.6.4"
 serde = { version = "1.0.157", features = ["derive"] }
 serde_json = "1.0.94"
+# http = "0.2.9"
+# reqwest = { version = "0.11.14", default-features = false }
+# ethers = "1.0.2"
+# ring = "0.16.20"
 # aes-gcm = "0.10.1"
 # generic-array = "0.14.6"
 # aes-gcm-siv = "0.11.1"
 # rust-crypto = "0.2.36"
 # libp2p = "0.51.1"
 # hyper = { version = "1.0.0-rc.3", features = ["full"] }
+chrono = "0.4.24"
+mbedtls = {version="0.8.1"}
+# tokio = { version = "1", features = ["full"] }
 
 [build]
 target = "x86_64-fortanix-unknown-sgx"
