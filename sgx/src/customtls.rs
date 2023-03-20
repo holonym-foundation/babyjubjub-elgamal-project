@@ -11,6 +11,7 @@ use mbedtls::ssl::{Config, Context};
 use mbedtls::x509::certificate::{Builder, Certificate};
 use mbedtls::x509::Time;
 use mbedtls::Result as TlsResult;
+use mbedtls::alloc::Box;
 use std::io::Write;
 use std::io::{BufRead, BufReader};
 use std::net::{TcpListener, TcpStream};
