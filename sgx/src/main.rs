@@ -82,7 +82,7 @@ fn main() {
     //     .get(Uri::from_static("http://httpbin.org/ip"));
 
     // 
-    // println!("WOW, HERE IS THE EXTERNAL FUNCTION {}", customtls::hey());
+    println!("WOW, HERE IS THE EXTERNAL FUNCTION {}", customtls::https_get());
     let args: Vec<String> = env::args().collect();
     // Seal key:
     let key: [u8; 16];

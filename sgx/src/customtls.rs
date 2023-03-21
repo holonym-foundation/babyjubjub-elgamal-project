@@ -12,6 +12,8 @@ use mbedtls::x509::certificate::{Builder, Certificate};
 use mbedtls::x509::Time;
 use mbedtls::Result as TlsResult;
 use mbedtls::alloc::Box;
+use std::env;
+use std::io::Read;
 use std::io::Write;
 use std::io::{BufRead, BufReader};
 use std::net::{TcpListener, TcpStream};
@@ -82,4 +84,42 @@ fn get_key_and_cert() -> (Pk, Box<Certificate>) {
     )
     .unwrap();
     (key, cert)
+}
+
+pub fn https_get() -> String {
+    // let mut stream = TcpStream::connect("google.com:443")
+    // .expect("Couldn't connect to the server...");
+    // // stream.set_nonblocking(true).expect("set_nonblocking call failed");
+    // let mut buf = vec![];
+    
+    // loop {
+    //     println!("iterating");
+    //     let res = stream.read_to_end(&mut buf);
+    //     println!("res {:?}", res);
+    //     match res {
+    //         Ok(_) => break,
+    //         // Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+    //         //     // wait until network socket is ready, typically implemented
+    //         //     // via platform-specific APIs such as epoll or IOCP
+    //         //     // wait_for_fd();
+    //         // }
+    //         Err(e) => panic!("encountered IO error: {}", e),
+    //     };
+    // };
+    // println!("GOT bytes: {:?}", buf);
+
+    // let entropy = Arc::new(entropy_new());
+    // let rng = Arc::new(CtrDrbg::new(entropy, None)?);
+    // let (key, cert) = get_key_and_cert();
+    // let mut config = Config::new(Endpoint::Client, Transport::Stream, Preset::Default);
+    env::set_var("RUST_BACKTRACE", "1");
+    // let response = minreq::get("http://info.cern.ch:80")
+    // // .with_header("Accept", "text/plain")
+    // // .with_header("X-Best-Mon", "Sylveon")
+    // .send()
+    // .unwrap();
+    // let body_str = response.as_str().unwrap();
+    // body_str.to_string()
+    minreq::get("http://127.0.0.1:3000").send().unwrap().as_str().unwrap().to_string()
+
 }
