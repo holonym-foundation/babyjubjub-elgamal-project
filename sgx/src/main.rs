@@ -1,9 +1,8 @@
 use rand::random;
 extern crate serde;
 use serde::{Serialize, Deserialize};
-// use generic_array::{GenericArray, ArrayLength};
 use babyjubjub_rs::{Point, ToDecimalString, ElGamalEncryption, encrypt_elgamal, PrivateKey};
-// use babyjubjub_elgamal::{Node, KeygenHelper, decrypt, calculate_pubkey};
+use babyjubjub_elgamal::{Node, KeygenHelper, calculate_pubkey};
 use std::env;
 
 use crate::sealing::{get_seal_key_for_label, recover_seal_key, Seal};
@@ -53,8 +52,10 @@ fn main() {
     // Create seed for random polynomial (16 bytes is enough randomness; the rest can all be zeros)
     let mut padded = key.to_vec();
     padded.append(&mut [0 as u8; 16].to_vec());
-    let p = PrivateKey::import(padded).unwrap();
-    println!("Heyyyyy {:?}", p.public());   
+    // let p = PrivateKey::import(padded).unwrap();
+    let idx = 1; // get idx from cli
+    let node = Node::init_from_seed(&padded, idx, 2, 2);  
+    println!("This nodes' public key : {:?}", node.pubkey_share()); 
     println!("Note ^ this public key will be different if the enclave measurements do not match the measurements before. I.e., if the code has changed.");
 }
 

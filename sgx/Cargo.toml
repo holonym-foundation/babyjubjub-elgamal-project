@@ -12,7 +12,7 @@ license = "MIT/Apache-2.0"
 
 [dependencies]
 babyjubjub-rs = { version = "0.0.10", path = "../babyjubjub-rs-with-elgamal", default-features = true }
-# babyjubjub-elgamal = { path = "../main"}
+babyjubjub-elgamal = { path = "../main"}
 sgx-isa = { version = "0.2", features = ["sgxstd"] }
 rand = "0.6.4"
 serde = { version = "1.0.157", features = ["derive"] }

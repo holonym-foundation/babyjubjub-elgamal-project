@@ -2,6 +2,7 @@ use sgx_isa::{Attributes, Miscselect, ErrorCode, Keyname, Keypolicy, Keyrequest,
 extern crate serde;
 use serde::{Serialize, Deserialize};
 use rand::random;
+
 // For key sealing
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Seal {

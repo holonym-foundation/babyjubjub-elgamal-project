@@ -1676,6 +1676,7 @@ dependencies = [
 name = "sgx-zkescrow"
 version = "0.0.0"
 dependencies = [
+ "babyjubjub-elgamal",
  "babyjubjub-rs",
  "chrono",
  "mbedtls",
