@@ -16,7 +16,7 @@ switch(process.env.HOLONYM_BUILD_MODE) {
         break;
     // By default, build a library from wrapper.js using these guidelines https://webpack.js.org/guides/author-libraries/
     default:
-        entry = './src-js/wrapper.js';
+        entry = './src-js/browser-target.js';
         output = { 
             globalObject: 'this',
             filename: 'node-package/threshold-eg-babyjub.js',

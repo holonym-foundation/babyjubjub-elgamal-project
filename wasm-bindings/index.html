@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>Test wasm packaged</title>
+  </head>
+  <body>
+    <h1 id="heading">Test wasm packaged</h1>
+    <h2 id="subtitle">Test wasm packaged</h2>
+    <script type="module">
+      console.log('before  init');
+      import init, { msgToPoint } from "./pkg/elgamal_babyjubjub.js";
+      init().then(() => {
+        const result = ["1"].map((msg) => msgToPoint(msg));
+        console.log("result", result);
+        const subtitle = document.getElementById('subtitle');
+        subtitle.textContent = String(`msgToPoint: 1 = ${JSON.stringify(result[0])}`);
+      });
+    </script>
+  </body>
+</html>
