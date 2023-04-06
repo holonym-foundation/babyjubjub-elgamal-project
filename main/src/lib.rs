@@ -221,6 +221,8 @@ impl Node {
 
     /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2). Returns secret share * my lagrange basis * C1
     pub fn partial_decrypt(&self, c1: &Point) -> Point {
+        assert!(c1.on_curve(), "Error: C1 is not on the curve!");
+        assert!(c1.in_subgroup(), "Error: C1 is not in the subgroup!");
         c1.mul_scalar(&self.secret_lagrange_basis_at_0().to_bigint())
     }
 
