@@ -1,14 +1,14 @@
-use rand::random;
+// use rand::random;
 extern crate serde;
-use serde::{Serialize, Deserialize};
-use babyjubjub_rs::{Point, ToDecimalString, ElGamalEncryption, encrypt_elgamal, PrivateKey};
-use babyjubjub_elgamal::{Node, KeygenHelper, calculate_pubkey};
-use std::env;
-use clap::{Parser, Subcommand};
+// use serde::{Serialize, Deserialize};
+// use babyjubjub_rs::{Point, ToDecimalString, ElGamalEncryption, encrypt_elgamal, PrivateKey};
+use babyjubjub_elgamal::Node;
+// use std::env;
+use clap::{Parser};
 
 use crate::sealing::{get_seal_key_for_label, recover_seal_key, Seal};
 mod sealing;
-// mod customtls;
+mod communication;
 
 #[derive(Parser,Debug)]
 #[command(version, about, long_about = None)]

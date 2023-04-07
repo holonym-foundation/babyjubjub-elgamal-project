@@ -1,4 +1,4 @@
-use sgx_isa::{Attributes, Miscselect, ErrorCode, Keyname, Keypolicy, Keyrequest, Report};
+use sgx_isa::{ErrorCode, Keyname, Keypolicy, Keyrequest, Report};
 extern crate serde;
 use serde::{Serialize, Deserialize};
 use rand::random;

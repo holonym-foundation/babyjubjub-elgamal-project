@@ -17,6 +17,8 @@ sgx-isa = { version = "0.2", features = ["sgxstd"] }
 rand = "0.6.4"
 serde = { version = "1.0.157", features = ["derive"] }
 serde_json = "1.0.94"
+ff = {package="ff_ce", version= "0.11", features = ["derive"]}
+
 # http = "0.2.9"
 # reqwest = { version = "0.11.14", default-features = false }
 # ethers = "1.0.2"
@@ -32,6 +34,11 @@ mbedtls = { version = "0.8.1"}
 # tokio = { version = "1", features = ["full"] }
 minreq = { version = "2.7.0" }
 clap = { version = "4.2.1", features = ["derive"] }
+libaes = "0.6.4"
+num-bigint = "0.4.3"
+sha256 = "1.1.2"
+sha2 = "0.10.6"
+# rust_sodium = "0.10.2"
 [build]
 target = "x86_64-fortanix-unknown-sgx"
 [run]
