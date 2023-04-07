@@ -2,7 +2,7 @@ extern crate serde;
 use babyjubjub_elgamal::Node;
 use clap::{Parser, Subcommand};
 // use colored::Colorize;
-use crate::sealing::{get_seal_key_for_label, recover_seal_key, Seal};
+use crate::{sealing::{get_seal_key_for_label, recover_seal_key, Seal}, communication::Comms};
 mod sealing;
 mod communication;
 
@@ -114,15 +114,25 @@ fn main() {
         println!("A communication key Seal wasn't supplied - creating new communication private key. To use a sealed private key, provide a JSON string representing the Seal using the --coms flag");
         (key_comms, seal_comms) = get_seal_key_for_label(*label_comms);
         println!("\x1b[93mGenerated new communication secret key. If you'd like to use it later, save this JSON object and supply it to this script using the --comms flag: {:?}\x1b[0m", 
-        serde_json::to_string(&seal_comms).unwrap())
+        serde_json::to_string(&seal_comms).unwrap());
     }
     
+    let comms = Comms::from_16byte_key(key_comms);
+    println!("\x1b[32mHey there, You can reach me at pubkey : {:?}\x1b[0m", 
+        serde_json::to_string(&comms.pubkey()).unwrap());
 
     
     // Command-specific actions
     match args.command {
         Some(Commands::Keygen { evalforidx, evalforpubkey, keygenseal, theirkeygen, comms }) => {
-            println!("For node {}: {}", evalforidx, 69/*, node.keygen_for(evalforidx)*/); //TODO: encrypt too
+            let keygen_for = node.keygen_for(evalforidx);
+            let pubkey_: Result<Point, Error> = serde_json::from_str(&evalforpubkey);
+            let pubkey = match pubkey_ {
+                Ok(p) => p,
+                Err(e) => panic!("Invalid public key to encrypt keygen polynomial evaluation to")
+            };
+            let encrypted = comms.encrypt_to(pubkey, keygen_for.to_bytes_be());
+            println!("For node {}: {:?}", evalforidx, encrypted); //TODO: encrypt too
         }
         _ => {}
     }
@@ -130,9 +140,8 @@ fn main() {
 }
 
 
+/* Example usage: 
+    Node 1 send Node 2 keygen evaluation for DKG, encrypted for Node2's communcation public key:
+    cargo run -- --idx 1 keygen --evalforidx 2 --evalforpubkey abc --keygenseal "{\"label\":[115,101,99,114,101,116,115,104,97,114,101,32,115,101,97,108],\"seal_data\":{\"rand\":[214,141,241,162,180,25,28,194,180,86,101,237,120,136,87,177],\"isvsvn\":0,\"cpusvn\":[20,20,11,7,255,128,14,0,0,0,0,0,0,0,0,0]}}" --comms "{\"label\":[99,111,109,32,112,114,105,118,107,101,121,32,115,101,97,108],\"seal_data\":{\"rand\":[224,42,228,171,88,40,15,109,213,197,169,65,164,77,4,234],\"isvsvn\":0,\"cpusvn\":[20,20,11,7,255,128,14,0,0,0,0,0,0,0,0,0]}}" 
 
-/*  To do: 
-    * note it doesn't matter whether it's communicated via tls for mvp, we know code is running in the enclave
-    1. generate random seed for polynomial
-    2. incorporate this as a workspace 
 */

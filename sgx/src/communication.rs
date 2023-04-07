@@ -1,9 +1,11 @@
 use ff::*;
-use babyjubjub_rs::{Point, Fr, FrBigIntConversion, B8};
+use babyjubjub_rs::{Point, Fr, FrBigIntConversion, B8, SUBORDER};
 use libaes::Cipher;
 use rand::{Rng, thread_rng};
 use num_bigint::BigInt;
 use sha2::{Sha256, Digest};
+use blake2::{Blake2b512};
+use num_bigint::Sign::Plus;
 extern crate serde;
 use serde::{Serialize, Deserialize};
 
@@ -14,6 +16,7 @@ pub struct AES128EncryptionFromECDHSecret {
     ciphertext: Vec<u8>
 }
 pub struct Comms {
+    // Should be a random element in Fl field (l is order of BabyJubJub subgroup)
     privkey: BigInt,
 }
 
@@ -58,6 +61,16 @@ impl Comms {
         let key = self.get_shared_secret(encryption.from);
         let cipher = Cipher::new_128(&key);
         cipher.cbc_decrypt(&encryption.iv, &encryption.ciphertext)
+        
+    }
+    // Convenience method to be used with SGX sealing. We can just hash it; it's strong enough
+    pub fn from_16byte_key(short_key: [u8; 16]) -> Comms {
+        let mut h = Blake2b512::new();
+        h.update(short_key);
+        let key = h.finalize();
+        let sub_order = SUBORDER.clone();
+        Comms { privkey: {BigInt::from_bytes_be(Plus, &key) % sub_order }}
+        
         
     }
 

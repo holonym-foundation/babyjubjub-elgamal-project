@@ -38,6 +38,7 @@ libaes = "0.6.4"
 num-bigint = "0.4.3"
 sha256 = "1.1.2"
 sha2 = "0.10.6"
+blake2 = "0.10.6"
 # rust_sodium = "0.10.2"
 [build]
 target = "x86_64-fortanix-unknown-sgx"
