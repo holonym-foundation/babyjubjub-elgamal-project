@@ -124,15 +124,15 @@ fn main() {
     // println!("WOW, HERE IS THE EXTERNAL FUNCTION {}", customtls::https_get());
     // let args: Vec<String> = env::args().collect();
     let args = Args::parse();
-    let global_node = get_node_from_idx_and_seal(args.idx, args.keygenseal);
-    let global_comms = get_comms_from_seal(args.comms);
     // Command-specific actions
     match args.command {
         Some(Commands::Keygen { evalforidx, evalforpubkey, keygenseal, theirkeygen, comms }) => {
-            let (_, asvec) = global_node.keygen_for(evalforidx).to_bytes_be();
+            let the_node = get_node_from_idx_and_seal(args.idx, keygenseal);
+            let the_comms = get_comms_from_seal(comms);
+            let (_, asvec) = the_node.keygen_for(evalforidx).to_bytes_be();
             let keygen_for: [u8; 32] = asvec.try_into().unwrap();
             let pubkey: Point = serde_json::from_str(&evalforpubkey).unwrap();
-            let encrypted = global_comms.encrypt_to(pubkey, &keygen_for);
+            let encrypted = the_comms.encrypt_to(pubkey, &keygen_for);
             println!("For node {}: {:?}", evalforidx, encrypted); //TODO: encrypt too
         }
         _ => {}
