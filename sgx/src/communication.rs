@@ -4,8 +4,10 @@ use libaes::Cipher;
 use rand::{Rng, thread_rng};
 use num_bigint::BigInt;
 use sha2::{Sha256, Digest};
+extern crate serde;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AES128EncryptionFromECDHSecret {
     from: Point,
     iv: [u8; 16],

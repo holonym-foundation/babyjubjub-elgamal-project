@@ -1,11 +1,7 @@
-// use rand::random;
 extern crate serde;
-// use serde::{Serialize, Deserialize};
-// use babyjubjub_rs::{Point, ToDecimalString, ElGamalEncryption, encrypt_elgamal, PrivateKey};
 use babyjubjub_elgamal::Node;
-// use std::env;
 use clap::{Parser};
-
+// use colored::Colorize;
 use crate::sealing::{get_seal_key_for_label, recover_seal_key, Seal};
 mod sealing;
 mod communication;
@@ -15,10 +11,12 @@ mod communication;
 struct Args {
     #[arg(short, long, value_name = "NODE_IDX")] 
     idx: usize,
-    #[arg(short, long, value_name = "SECRET_keygen_SEAL")] 
-    share: Option<String>,
+    #[arg(short, long, value_name = "SECRET_KEYGEN_SEAL")] 
+    mykeygen: Option<String>,
     #[arg(short, long, value_name = "P2P_SECRET_KEY_SEAL")] 
-    comms: Option<String>
+    comms: Option<String>,
+    #[arg(short, long, value_name = "THEIR_KEYGEN_ENCRYPTED_TO_ME")]
+    theirkeygen: Option<String>
 }
 
 fn main() {
@@ -45,7 +43,7 @@ fn main() {
     let args = Args::parse();
 
     // Reconstruct node from keygen seal
-    if let Some(s) = args.share {
+    if let Some(s) = args.mykeygen {
         seal_keygen = match serde_json::from_str(&s) {
                         Ok(deser) => deser,
                         Err(e) => panic!("Failed to deserialize keygen seal. Error: {}",e)
@@ -56,9 +54,9 @@ fn main() {
         };
         println!("Successfully recovered keygen from seal");
     } else {
-        println!("A keygen Seal wasn't supplied- creating new keygen. To use a sealed private key, provide a JSON string representing the Seal as the first argument");
+        println!("A keygen Seal wasn't supplied- creating new keygen. To use a sealed private key, provide a JSON string representing the Seal to this script using the --mykeygen flag");
         (key_keygen, seal_keygen) = get_seal_key_for_label(*label_keygen);
-        println!("Generated new keygen. If you'd like to use it later, save this JSON object and supply it as the first argument to this script: \n{:?}", serde_json::to_string(&seal_keygen).unwrap())
+        println!("\x1b[93mGenerated new keygen. If you'd like to use it later, save this JSON object and supply it to this script using the --mykeygen flag: \n{:?}\x1b[0m", serde_json::to_string(&seal_keygen).unwrap())
     }
 
     // Create the Node struct from the keygen share
@@ -82,9 +80,10 @@ fn main() {
         };
         println!("Successfully recovered communication private key from seal");
     } else {
-        println!("A communication key Seal wasn't supplied - creating new communication private key. To use a sealed private key, provide a JSON string representing the Seal as the first argument");
+        println!("A communication key Seal wasn't supplied - creating new communication private key. To use a sealed private key, provide a JSON string representing the Seal using the --coms flag");
         (key_comms, seal_comms) = get_seal_key_for_label(*label_comms);
-        println!("Generated new communication secret key. If you'd like to use it later, save this JSON object and supply it as the first argument to this script: \n{:?}", serde_json::to_string(&seal_comms).unwrap())
+        println!("\x1b[93mGenerated new communication secret key. If you'd like to use it later, save this JSON object and supply it to this script using the --comms flag: {:?}\x1b[0m", 
+        serde_json::to_string(&seal_comms).unwrap())
     }
     
     
