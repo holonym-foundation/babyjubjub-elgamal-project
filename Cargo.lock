@@ -1284,6 +1284,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
+name = "libaes"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb1f4e141b777ff28016e00e1f2e4846be9d1255f000823d54ea99bb70b3f15b"
+
+[[package]]
 name = "libc"
 version = "0.2.141"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2331,13 +2337,18 @@ dependencies = [
  "babyjubjub-rs",
  "chrono",
  "clap 4.2.1",
+ "ff_ce 0.11.0",
+ "libaes",
  "libp2p",
  "mbedtls",
  "minreq",
+ "num-bigint 0.4.3",
  "rand 0.6.5",
  "serde",
  "serde_json",
  "sgx-isa",
+ "sha2 0.10.6",
+ "sha256",
 ]
 
 [[package]]
@@ -2362,6 +2373,16 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest 0.10.6",
+]
+
+[[package]]
+name = "sha256"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "328169f167261957e83d82be47f9e36629e257c62308129033d7f7e7c173d180"
+dependencies = [
+ "hex",
+ "sha2 0.9.9",
 ]
 
 [[package]]
