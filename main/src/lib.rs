@@ -170,6 +170,10 @@ impl Node {
             keyshare: None
         }
     }
+    /// evaluates keygen polynomial for node at index idx
+    pub fn keygen_for(&self, idx: usize) -> BigInt {
+        self.keygen_polynomial.eval(&BigInt::from_usize(idx).unwrap())
+    }
     /// num_nodes = how many nodes it needs to share its polynomial evaluations with. Note: all nodes must do this and give result to all other nodes
     pub fn keygen_step1(&self, num_nodes: usize) -> Vec<KeygenHelper> {
         (0..num_nodes).map(
@@ -177,7 +181,7 @@ impl Node {
                 let idx = i + 1; // i+1 since nodes are indexed at 1
                 KeygenHelper {
                     for_node: idx, 
-                    value: self.keygen_polynomial.eval(&BigInt::from_usize(idx).unwrap())
+                    value: self.keygen_for(idx)
                 } 
             }
         )
