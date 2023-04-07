@@ -1,25 +1,56 @@
 extern crate serde;
 use babyjubjub_elgamal::Node;
-use clap::{Parser};
+use clap::{Parser, Subcommand};
 // use colored::Colorize;
 use crate::sealing::{get_seal_key_for_label, recover_seal_key, Seal};
 mod sealing;
 mod communication;
 
-#[derive(Parser,Debug)]
+#[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
     #[arg(short, long, value_name = "NODE_IDX")] 
     idx: usize,
-    #[arg(short, long, value_name = "SECRET_KEYGEN_SEAL")] 
-    mykeygen: Option<String>,
     #[arg(short, long, value_name = "P2P_SECRET_KEY_SEAL")] 
     comms: Option<String>,
+    #[arg(short, long, value_name = "SECRET_KEYGEN_SEAL")] 
+    keygenseal: Option<String>,
     #[arg(short, long, value_name = "THEIR_KEYGEN_ENCRYPTED_TO_ME")]
-    theirkeygen: Option<String>
+    theirkeygen: Option<String>,
+    #[command(subcommand)]
+    command: Option<Commands>,
+    
+    
+}
+#[derive(Subcommand)]
+enum Commands {
+    Keygen {
+        /// Who to evaluate the keygen for (idx)
+        #[arg(long, value_name = "EVAL_FOR_IDX")] 
+        evalforidx: usize,
+        /// Who to encrypt the keygen for (comm pubkey JSON {x: "x coordinate", y: "y coordinate"})
+        #[arg(long, value_name = "EVAL_FOR_IDX")] 
+        evalforpubkey: String,
+        /// My keygen, sealed
+        #[arg(short, long, value_name = "SECRET_KEYGEN_SEAL")] 
+        keygenseal: Option<String>,
+        /// Their keygen, encrypted to me
+        #[arg(short, long, value_name = "THEIR_KEYGEN_ENCRYPTED_TO_ME")]
+        theirkeygen: Option<String>,
+        /// My communication key, sealed
+        #[arg(short, long, value_name = "P2P_SECRET_KEY_SEAL")] 
+        comms: Option<String>,
+    },
+
+    PartialDecrypt {
+        /// JSON ElGamalEncryption
+        #[arg(short, long, value_name = "CIPHERTEXT")]
+        ciphertext: String
+    }
 }
 
 fn main() {
+    std::env::set_var("RUST_BACKTRACE", "1");
     // use hyper::{Client, Uri};
 
     // let client = Client::new();
@@ -43,7 +74,7 @@ fn main() {
     let args = Args::parse();
 
     // Reconstruct node from keygen seal
-    if let Some(s) = args.mykeygen {
+    if let Some(s) = args.keygenseal {
         seal_keygen = match serde_json::from_str(&s) {
                         Ok(deser) => deser,
                         Err(e) => panic!("Failed to deserialize keygen seal. Error: {}",e)
@@ -54,9 +85,9 @@ fn main() {
         };
         println!("Successfully recovered keygen from seal");
     } else {
-        println!("A keygen Seal wasn't supplied- creating new keygen. To use a sealed private key, provide a JSON string representing the Seal to this script using the --mykeygen flag");
+        println!("A keygen Seal wasn't supplied- creating new keygen. To use a sealed private key, provide a JSON string representing the Seal to this script using the --keygenseal flag");
         (key_keygen, seal_keygen) = get_seal_key_for_label(*label_keygen);
-        println!("\x1b[93mGenerated new keygen. If you'd like to use it later, save this JSON object and supply it to this script using the --mykeygen flag: \n{:?}\x1b[0m", serde_json::to_string(&seal_keygen).unwrap())
+        println!("\x1b[93mGenerated new keygen. If you'd like to use it later, save this JSON object and supply it to this script using the --keygenseal flag: \n{:?}\x1b[0m", serde_json::to_string(&seal_keygen).unwrap())
     }
 
     // Create the Node struct from the keygen share
@@ -86,7 +117,16 @@ fn main() {
         serde_json::to_string(&seal_comms).unwrap())
     }
     
+
     
+    // Command-specific actions
+    match args.command {
+        Some(Commands::Keygen { evalforidx, evalforpubkey, keygenseal, theirkeygen, comms }) => {
+            println!("For node {}: {}", evalforidx, 69/*, node.keygen_for(evalforidx)*/); //TODO: encrypt too
+        }
+        _ => {}
+    }
+     
 }
 
 
