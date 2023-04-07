@@ -1,5 +1,6 @@
 extern crate serde;
 use babyjubjub_elgamal::Node;
+use babyjubjub_rs::Point;
 use clap::{Parser, Subcommand};
 // use colored::Colorize;
 use crate::{sealing::{get_seal_key_for_label, recover_seal_key, Seal}, communication::Comms};
@@ -49,32 +50,11 @@ enum Commands {
     }
 }
 
-fn main() {
-    std::env::set_var("RUST_BACKTRACE", "1");
-    // use hyper::{Client, Uri};
-
-    // let client = Client::new();
-
-    // let res = client
-    //     .get(Uri::from_static("http://httpbin.org/ip"));
-
-    // 
-    // println!("WOW, HERE IS THE EXTERNAL FUNCTION {}", customtls::https_get());
-    // let args: Vec<String> = env::args().collect();
-    
-    // Seal key:
+fn get_node_from_idx_and_seal(idx: usize, seal_json: Option<String>) -> Node {
     let key_keygen: [u8; 16];
     let seal_keygen: Seal;
     let label_keygen: &[u8; 16] = b"secretshare seal";
-
-    let key_comms: [u8; 16];
-    let seal_comms: Seal;
-    let label_comms: &[u8; 16] = b"com privkey seal";
-
-    let args = Args::parse();
-
-    // Reconstruct node from keygen seal
-    if let Some(s) = args.keygenseal {
+    if let Some(s) = seal_json {
         seal_keygen = match serde_json::from_str(&s) {
                         Ok(deser) => deser,
                         Err(e) => panic!("Failed to deserialize keygen seal. Error: {}",e)
@@ -95,12 +75,19 @@ fn main() {
     let mut padded = key_keygen.to_vec();
     padded.append(&mut [0 as u8; 16].to_vec());
     // let p = PrivateKey::import(padded).unwrap();
-    let node = Node::init_from_seed(&padded, args.idx, 2, 2);  
+    let node = Node::init_from_seed(&padded, idx, 2, 2);  
     println!("This nodes' public keygen is : {:?}", node.pubkey_share()); 
     println!("Note ^ this public keygen will be different if the enclave measurements do not match the measurements before. I.e., if the code has changed.");
+    node
+}
 
+fn get_comms_from_seal(seal_json: Option<String>) -> Comms {
+    let key_comms: [u8; 16];
+    let seal_comms: Seal;
+    let label_comms: &[u8; 16] = b"com privkey seal";
+    
     // Reconstruct Comms from communication key seal
-    if let Some(s) = args.comms {
+    if let Some(s) = seal_json {
         seal_comms = match serde_json::from_str(&s) {
                         Ok(deser) => deser,
                         Err(e) => panic!("Failed to deserialize communication key seal. Error: {}",e)
@@ -120,18 +107,32 @@ fn main() {
     let comms = Comms::from_16byte_key(key_comms);
     println!("\x1b[32mHey there, You can reach me at pubkey : {:?}\x1b[0m", 
         serde_json::to_string(&comms.pubkey()).unwrap());
+    comms
+}
 
-    
+
+fn main() {
+    std::env::set_var("RUST_BACKTRACE", "1");
+    // use hyper::{Client, Uri};
+
+    // let client = Client::new();
+
+    // let res = client
+    //     .get(Uri::from_static("http://httpbin.org/ip"));
+
+    // 
+    // println!("WOW, HERE IS THE EXTERNAL FUNCTION {}", customtls::https_get());
+    // let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
+    let global_node = get_node_from_idx_and_seal(args.idx, args.keygenseal);
+    let global_comms = get_comms_from_seal(args.comms);
     // Command-specific actions
     match args.command {
         Some(Commands::Keygen { evalforidx, evalforpubkey, keygenseal, theirkeygen, comms }) => {
-            let keygen_for = node.keygen_for(evalforidx);
-            let pubkey_: Result<Point, Error> = serde_json::from_str(&evalforpubkey);
-            let pubkey = match pubkey_ {
-                Ok(p) => p,
-                Err(e) => panic!("Invalid public key to encrypt keygen polynomial evaluation to")
-            };
-            let encrypted = comms.encrypt_to(pubkey, keygen_for.to_bytes_be());
+            let (_, asvec) = global_node.keygen_for(evalforidx).to_bytes_be();
+            let keygen_for: [u8; 32] = asvec.try_into().unwrap();
+            let pubkey: Point = serde_json::from_str(&evalforpubkey).unwrap();
+            let encrypted = global_comms.encrypt_to(pubkey, &keygen_for);
             println!("For node {}: {:?}", evalforidx, encrypted); //TODO: encrypt too
         }
         _ => {}
@@ -142,6 +143,6 @@ fn main() {
 
 /* Example usage: 
     Node 1 send Node 2 keygen evaluation for DKG, encrypted for Node2's communcation public key:
-    cargo run -- --idx 1 keygen --evalforidx 2 --evalforpubkey abc --keygenseal "{\"label\":[115,101,99,114,101,116,115,104,97,114,101,32,115,101,97,108],\"seal_data\":{\"rand\":[214,141,241,162,180,25,28,194,180,86,101,237,120,136,87,177],\"isvsvn\":0,\"cpusvn\":[20,20,11,7,255,128,14,0,0,0,0,0,0,0,0,0]}}" --comms "{\"label\":[99,111,109,32,112,114,105,118,107,101,121,32,115,101,97,108],\"seal_data\":{\"rand\":[224,42,228,171,88,40,15,109,213,197,169,65,164,77,4,234],\"isvsvn\":0,\"cpusvn\":[20,20,11,7,255,128,14,0,0,0,0,0,0,0,0,0]}}" 
+    cargo run -- --idx 1 keygen --evalforidx 2 --evalforpubkey "{\"x\":\"12632250867100946703725125125380728454403932393858267602627621494529531874301\",\"y\":\"6517533097441357955175422935405715589316845952950901100934098432018753021930\"}" --keygenseal "{\"label\":[115,101,99,114,101,116,115,104,97,114,101,32,115,101,97,108],\"seal_data\":{\"rand\":[214,141,241,162,180,25,28,194,180,86,101,237,120,136,87,177],\"isvsvn\":0,\"cpusvn\":[20,20,11,7,255,128,14,0,0,0,0,0,0,0,0,0]}}" --comms "{\"label\":[99,111,109,32,112,114,105,118,107,101,121,32,115,101,97,108],\"seal_data\":{\"rand\":[224,42,228,171,88,40,15,109,213,197,169,65,164,77,4,234],\"isvsvn\":0,\"cpusvn\":[20,20,11,7,255,128,14,0,0,0,0,0,0,0,0,0]}}" 
 
 */
