@@ -10,5 +10,5 @@ babyjubjub-rs = { path = "../babyjubjub-rs-with-elgamal"}
 num-bigint = "0.4.3"
 rocket = {version = "=0.5.0-rc.3", features = ["json"]}
 # rocket_contrib = "0.4.2"
-# serde = { version = "1.0", features = ["derive"] }
-# serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

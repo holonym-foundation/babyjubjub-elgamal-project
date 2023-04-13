@@ -2,17 +2,26 @@ use std::env;
 
 use babyjubjub_rs::Point;
 use num_bigint::BigInt;
-use rocket::{State, serde::json::Json};
+use rocket::{State, serde::json::Json, response::status::BadRequest};
 // use rocket_contrib::json::Json;use std::env;
 #[macro_use] extern crate rocket;
 
 
-
-// should be POST
-// #[get("/<x>/<y>")]
 #[post("/", format = "json", data = "<point>")]
-fn index(privkey: &State<BigInt>, point: Json<Point>) -> String {
-    format!("Hello, world! my private key is {}. you want me to multiply it by {:?}", privkey, point)
+fn index(privkey: &State<BigInt>, point: Json<Point>) -> Result<String, BadRequest<&'static str>> {
+    // Check it is safe to proceed, i.e. point is on the curve and in subgroup
+    if !point.on_curve() {
+        return Err(BadRequest(Some("Not on curve")));
+    }
+
+    // Note: in_subgroup just checks that order of the point is the order of the subgroup
+    if !point.in_subgroup() {
+        return Err(BadRequest(Some("Not in subgroup")));
+    }
+
+    let result = point.mul_scalar(&privkey);
+    Ok(serde_json::to_string(&result).unwrap())
+    // format!("Hello, world! my private key is {}. you want me to multiply it by {:?}", privkey, point)
 }
 
 #[launch]
