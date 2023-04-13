@@ -1448,6 +1448,7 @@ dependencies = [
  "ff_ce 0.11.0",
  "getrandom",
  "num-bigint 0.4.3",
+ "oprf-lambda",
  "rand 0.8.5",
  "serde",
  "serde-wasm-bindgen 0.5.0",
