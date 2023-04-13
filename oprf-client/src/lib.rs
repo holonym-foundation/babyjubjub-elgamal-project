@@ -38,16 +38,6 @@ pub fn step1(plaintext: &str) -> Step1Result {
         let rnd_fl_inv = rnd_fl.inverse().unwrap();
         let rnd_point = B8.mul_scalar(&rnd_bi);
 
-
-        // For testing:
-        let mut x = rnd_fl_inv.clone();
-        x.mul_assign(&rnd_fl);
-        println!("rnd * rnd inverse, {:?} (should be 1)", x);
-
-        let rnd_str_inv = rnd_fl_inv.to_dec_string();
-        let should_equal_base = rnd_point.mul_scalar(&BigInt::from_str(&rnd_str_inv).unwrap());
-        println!("{:?}: {:?}, {:?}", should_equal_base, B8.x, B8.y);
-
         Step1Result {
             masked: rnd_point.mul_scalar(&hashed),
             unmasker_keepthissecret: rnd_fl_inv.to_dec_string(),
@@ -75,25 +65,32 @@ impl Client {
 }
 
 
-// Simulates a server by multiplying the point by a private key
-// Note it does not perform security checks on the input before multiplying it by its private key
-pub fn mock_server(masked: Point, privkey: BigInt) -> Point {
-    masked.mul_scalar(&privkey)
-}
+
 
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
 
+    use babyjubjub_rs::Point;
     use num_bigint::BigInt;
 
-    use crate::{step1, mock_server, step2};
+    use crate::{step1, step2};
+
+    // Simulates a server by multiplying the point by a private key
+    // Note it does not perform security checks on the input before multiplying it by its private key
+    fn mock_server(masked: Point, privkey: BigInt) -> Point {
+        masked.mul_scalar(&privkey)
+    }
+
+    fn mock_interaction(input: &str) -> Vec<u8> {
+        let masked_and_mask = step1(input);
+        let server_response = mock_server(masked_and_mask.masked, BigInt::from_str("69").unwrap());
+        step2(masked_and_mask.unmasker_keepthissecret, server_response)
+    }
 
     #[test]
-    fn mask_and_unmask() {
-        let masked_and_mask = step1("abc");
-        let server_response = mock_server(masked_and_mask.masked, BigInt::from_str("69").unwrap());
-        let unmasked = step2(masked_and_mask.unmasker_keepthissecret, server_response);
-        println!("unmasked: {:?}", unmasked);
+    fn test_determinism() {
+        // Makes sure same input gives same output. This seems to be essentially all we need to test client-side unless i'm missing something.
+        assert_eq!(mock_interaction("abc"), mock_interaction("abc"));
     }
 }
