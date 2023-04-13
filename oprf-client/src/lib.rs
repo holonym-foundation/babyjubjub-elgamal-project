@@ -1,22 +1,29 @@
-use std::{str::FromStr, simd::Mask};
+use std::{panic, str::FromStr};
 
 use babyjubjub_rs::{Point, SUBORDER, B8, Fr, ToDecimalString};
 use ff::{PrimeField, Field};
 use num_bigint::{BigInt, Sign, RandBigInt};
+use serde::{Serialize, Deserialize};
 // JS Client
 use wasm_bindgen::prelude::*;
 use blake2::{Blake2b512, Digest};
 
 #[wasm_bindgen]
+pub fn enable_errors() {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+}
+
+#[wasm_bindgen]
 pub struct Client {}
 
 #[wasm_bindgen]
+#[derive(Serialize, Deserialize)]
 pub struct Step1Result {
     masked: Point,
     unmasker_keepthissecret: String,
 }
 
-pub fn hash(input: Vec<u8>) -> [u8; 32] {
+pub fn hash(input: Vec<u8>) -> [u8; 64] {
     let mut hasher = Blake2b512::new();
     hasher.update(input);
     hasher.finalize().to_vec().try_into().unwrap()
@@ -34,10 +41,11 @@ impl Client {
         let rnd_point = B8.mul_scalar(&rnd_bi);
 
 
-        Step1Result {
+        let result = Step1Result {
             masked: rnd_point.mul_scalar(&hashed),
             unmasker_keepthissecret: rnd_fr_inv.to_dec_string(),
-        }.into()
+        };
+        serde_wasm_bindgen::to_value(&result).unwrap()
     }
 
     pub fn step2(unmasker: String, point: JsValue) -> Vec<u8> {
@@ -47,7 +55,4 @@ impl Client {
         let (_, unmasked_bytes) = BigInt::from_str(&unmasked.x.to_dec_string()).unwrap().to_bytes_be();
         hash(unmasked_bytes.to_vec()).to_vec()
     }
-}
-pub fn greet(name: &str) {
-    format!("Hello, {}!", name);
 }
