@@ -131,7 +131,7 @@ dependencies = [
  "num-traits",
  "rand 0.8.5",
  "serde",
- "serde-wasm-bindgen",
+ "serde-wasm-bindgen 0.4.5",
  "serde_json",
  "time 0.1.45",
 ]
@@ -701,7 +701,7 @@ dependencies = [
  "js-sys",
  "num-bigint 0.4.3",
  "serde",
- "serde-wasm-bindgen",
+ "serde-wasm-bindgen 0.4.5",
  "serde_json",
  "wasm-bindgen",
 ]
@@ -1439,11 +1439,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
+name = "oprf-client"
+version = "0.1.0"
+dependencies = [
+ "babyjubjub-rs",
+ "blake2",
+ "ff_ce 0.11.0",
+ "getrandom",
+ "num-bigint 0.4.3",
+ "rand 0.8.5",
+ "serde-wasm-bindgen 0.5.0",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "oprf-lambda"
 version = "0.1.0"
 dependencies = [
+ "babyjubjub-rs",
+ "ff_ce 0.11.0",
  "lambda_runtime",
  "log",
+ "num-bigint 0.4.3",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1807,6 +1824,17 @@ name = "serde-wasm-bindgen"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3b4c031cd0d9014307d82b8abf653c0290fbdaeb4c02d00c63cf52f728628bf"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f3b143e2833c57ab9ad3ea280d21fd34e285a42837aeb0ee301f4f41890fa00e"
 dependencies = [
  "js-sys",
  "serde",

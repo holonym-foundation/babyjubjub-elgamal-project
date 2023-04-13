@@ -4,5 +4,6 @@ members = [
     "babyjubjub-rs-with-elgamal",
     "sgx",
     "wasm-bindings",
-    "oprf-lambda"
+    "oprf-client",
+    "oprf-lambda",
 ]
