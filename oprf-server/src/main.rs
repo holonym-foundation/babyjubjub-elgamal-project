@@ -9,6 +9,8 @@ use rocket::{Request, Response, fairing::{Fairing, Info, Kind}, http::{Header, S
 #[macro_use] extern crate rocket;
 
 pub struct Cors;
+const allow_origins: [&'static str; 3] = ["https://silkwallet.net", "http://localhost:3000", "http://localhost:3001"];
+
 #[rocket::async_trait]
 impl Fairing for Cors {
     fn info(&self) -> Info {
@@ -18,9 +20,13 @@ impl Fairing for Cors {
         }
     }
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        let _origin = _request.headers().get_one("origin").unwrap();
+        let origin = if allow_origins.contains(&_origin) { _origin } else { "null" };
+
         response.set_status(Status::new(200));
-        response.set_header(Header::new("Access-Control-Allow-Origin", "*")); //CHANGE THIS TO ONLY SAFE SITES
-        response.set_header(Header::new("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT"));
+        
+        response.set_header(Header::new("Access-Control-Allow-Origin", origin)); //CHANGE THIS TO ONLY SAFE SITES
+        response.set_header(Header::new("Access-Control-Allow-Methods", "POST, GET"));
         response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
         response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
 
