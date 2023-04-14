@@ -1,11 +1,15 @@
-use std::env;
+use std::{env};
 
-use babyjubjub_rs::Point;
-use num_bigint::BigInt;
+use babyjubjub_rs::{Point};
+use num_bigint::{BigInt};
 use rocket::{State, serde::json::Json, response::status::BadRequest};
+
 // use rocket_contrib::json::Json;use std::env;
 #[macro_use] extern crate rocket;
 
+// this route is solely so that a TLS connection can be started early before any user action and automatically cached by both parties. This avoids the handshake latency overhead when the user requests the OPRF
+#[get("/ping")]
+fn do_nothing() -> &'static str { "" }
 
 #[post("/", format = "json", data = "<point>")]
 fn index(privkey: &State<BigInt>, point: Json<Point>) -> Result<String, BadRequest<&'static str>> {
@@ -31,5 +35,5 @@ fn rocket() -> _ {
         .expect("OPRF_KEY must be an environment variable. It should be a decimal string representing a random integer between 0 and the order of the curve's subgroup.")
         .parse::<BigInt>()
         .unwrap();
-    rocket::build().manage(privkey).mount("/", routes![index])
+    rocket::build().manage(privkey).mount("/", routes![index, do_nothing])
 }
