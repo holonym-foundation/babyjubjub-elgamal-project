@@ -1,8 +1,9 @@
-use std::{env};
+use std::{env, collections::HashSet, str::FromStr};
 
 use babyjubjub_rs::{Point};
 use num_bigint::{BigInt};
 use rocket::{State, serde::json::Json, response::status::BadRequest};
+use rocket_cors::{Method, AllowedHeaders, AllowedOrigins};
 
 // use rocket_contrib::json::Json;use std::env;
 #[macro_use] extern crate rocket;
@@ -30,10 +31,27 @@ fn index(privkey: &State<BigInt>, point: Json<Point>) -> Result<String, BadReque
 
 #[launch]
 fn rocket() -> _ {
+    // Setup CORS
+    let allowed_origins = AllowedOrigins::some_exact(&["https://silkwallet.net", "http://localhost:3000", "http://127.0.0.1:3000"]);
+    let cors = rocket_cors::CorsOptions {
+        allowed_origins,
+        allowed_methods: HashSet::from_iter(
+            vec![Method::from_str("POST").unwrap(), Method::from_str("GET").unwrap()]
+            .iter().cloned()
+        ),
+        allowed_headers: AllowedHeaders::some(&["*"]),
+        // allow_credentials: true,
+        ..Default::default()
+    }
+    .to_cors().unwrap();
+
     // Get the private key env var
     let privkey: BigInt = env::var("OPRF_KEY")
         .expect("OPRF_KEY must be an environment variable. It should be a decimal string representing a random integer between 0 and the order of the curve's subgroup.")
         .parse::<BigInt>()
         .unwrap();
-    rocket::build().manage(privkey).mount("/", routes![index, do_nothing])
+    rocket::build()
+    .manage(privkey)
+    .mount("/", routes![index, do_nothing])
+    // .attach(cors)
 }
