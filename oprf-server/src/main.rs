@@ -3,11 +3,29 @@ use std::{env, collections::HashSet, str::FromStr};
 use babyjubjub_rs::{Point};
 use num_bigint::{BigInt};
 use rocket::{State, serde::json::Json, response::status::BadRequest};
-use rocket_cors::{Method, AllowedHeaders, AllowedOrigins};
+use rocket::{Request, Response, fairing::{Fairing, Info, Kind}, http::{Header, Status}};
 
 // use rocket_contrib::json::Json;use std::env;
 #[macro_use] extern crate rocket;
 
+pub struct Cors;
+#[rocket::async_trait]
+impl Fairing for Cors {
+    fn info(&self) -> Info {
+        Info {
+            name: "Fairing to add the CORS headers",
+            kind: Kind::Response
+        }
+    }
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_status(Status::new(200));
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*")); //CHANGE THIS TO ONLY SAFE SITES
+        response.set_header(Header::new("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT"));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+
+    }
+}
 // this route is solely so that a TLS connection can be started early before any user action and automatically cached by both parties. This avoids the handshake latency overhead when the user requests the OPRF
 #[get("/")]
 fn do_nothing() -> &'static str { "GM" }
@@ -32,18 +50,18 @@ fn index(privkey: &State<BigInt>, point: Json<Point>) -> Result<String, BadReque
 #[launch]
 fn rocket() -> _ {
     // Setup CORS
-    let allowed_origins = AllowedOrigins::some_exact(&["https://silkwallet.net", "http://localhost:3000", "http://127.0.0.1:3000"]);
-    let cors = rocket_cors::CorsOptions {
-        allowed_origins,
-        allowed_methods: HashSet::from_iter(
-            vec![Method::from_str("POST").unwrap(), Method::from_str("GET").unwrap()]
-            .iter().cloned()
-        ),
-        allowed_headers: AllowedHeaders::some(&["*"]),
-        // allow_credentials: true,
-        ..Default::default()
-    }
-    .to_cors().unwrap();
+    // let allowed_origins = AllowedOrigins::some_exact(&["https://silkwallet.net", "http://localhost:3000", "http://127.0.0.1:3000"]);
+    // let cors = rocket_cors::CorsOptions {
+    //     allowed_origins,
+    //     allowed_methods: HashSet::from_iter(
+    //         vec![Method::from_str("POST").unwrap(), Method::from_str("GET").unwrap()]
+    //         .iter().cloned()
+    //     ),
+    //     allowed_headers: AllowedHeaders::some(&["*"]),
+    //     // allow_credentials: true,
+    //     ..Default::default()
+    // }
+    // .to_cors().unwrap();
 
     // Get the private key env var
     let privkey: BigInt = env::var("OPRF_KEY")
@@ -52,6 +70,6 @@ fn rocket() -> _ {
         .unwrap();
     rocket::build()
     .manage(privkey)
+    .attach(Cors)
     .mount("/", routes![index, do_nothing])
-    // .attach(cors)
 }
