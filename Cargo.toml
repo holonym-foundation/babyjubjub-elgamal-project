@@ -3,5 +3,6 @@ members = [
     "main",
     "babyjubjub-rs-with-elgamal",
     "sgx",
-    "wasm-bindings"
+    "wasm-bindings",
+    "mpc-core-wasm-bindings"
 ]

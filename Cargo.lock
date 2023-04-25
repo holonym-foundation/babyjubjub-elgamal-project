@@ -800,6 +800,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "mpc-core-wasm-bindings"
+version = "0.1.0"
+dependencies = [
+ "babyjubjub-elgamal",
+ "babyjubjub-rs",
+ "console_error_panic_hook",
+ "ff_ce 0.14.3",
+ "getrandom",
+ "hex",
+ "js-sys",
+ "num-bigint 0.4.3",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "num"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
