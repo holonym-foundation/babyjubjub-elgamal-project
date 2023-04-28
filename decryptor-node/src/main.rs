@@ -21,6 +21,7 @@ impl Fairing for Cors {
         }
     }
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        println!("headers, {:?}", _request.headers());
         let _origin = _request.headers().get_one("origin").unwrap();
         let origin = if ALLOW_ORIGINS.contains(&_origin) { _origin } else { "null" };
 
