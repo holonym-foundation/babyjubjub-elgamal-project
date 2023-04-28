@@ -514,6 +514,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "decryptor-node"
+version = "0.1.0"
+dependencies = [
+ "babyjubjub-elgamal",
+ "babyjubjub-rs",
+ "hex",
+ "num-bigint 0.4.3",
+ "rocket",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "devise"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
