@@ -5,6 +5,7 @@ use rocket::{State, serde::json::Json, response::status::BadRequest};
 use rocket::{Request, Response, fairing::{Fairing, Info, Kind}, http::{Header, Status}};
 use serde::{Serialize, Deserialize};
 
+mod access;
 #[macro_use] extern crate rocket;
 
 
@@ -27,7 +28,6 @@ impl Fairing for Cors {
         }
     }
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
-        println!("headers, {:?}", _request.headers());
         let _origin = _request.headers().get_one("origin").unwrap();
         let origin = if ALLOW_ORIGINS.contains(&_origin) { _origin } else { "null" };
 
@@ -64,6 +64,7 @@ fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> Result
 
 #[launch]
 fn rocket() -> _ {
+    has_access();
     // Get the node's private key seed key env var
     let privkey: String = env::var("ZK_ESCROW_SECRET_SEED")
         .expect("ZK_ESCROW_SECRET_SEED must be an environment variable. It should be a random 32-byte hex string from a secure random number generator.");
@@ -89,7 +90,6 @@ fn rocket() -> _ {
     // If keygen step one has not been done, do it now
     match env::var("ZK_ESCROW_KEYGEN_EVALUATIONS_FOR_MY_NODE") {
         Ok(s) => { 
-            println!("String is {}", s);
             let keygen_helpers: Vec<KeygenHelper> = serde_json::from_str(&s.replace("\\", "")).unwrap(); 
             let as_pointers: Vec<&KeygenHelper> = keygen_helpers.iter().collect();
             node.set_keyshare(&as_pointers);
