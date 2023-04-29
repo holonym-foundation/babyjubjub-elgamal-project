@@ -205,10 +205,13 @@ impl Node {
     pub fn pubkey_share(&self) -> Point {
         B8.mul_scalar(&self.keygen_polynomial_at_0)
     }
+    
+    // NOTE: look more into security of a user being able to ask "decrypt this with nodes i1, i2, and i3", then being able to asl "decrypt this with nodes i4, i5, and i6". Does this reveal any information about the private key? I would assume not because this is standard, but seems strange and still worth more detailed analysis.
 
     /// Return this node's secret share * this node's Lagrange basis, evaluated at 0. All nodes' secret_lagrange_basis_at_0() should sum to the shared private key
-    fn secret_lagrange_basis_at_0(&self) -> Fl {
-        let mut basis = lagrange_basis_at_0(self.idx as u32, self.threshold_nodes as u32);
+    fn secret_lagrange_basis_at_0(&self, node_indices: &Vec<u32>) -> Fl {
+        assert!(node_indices.len() == self.total_nodes, "Error: node_indices must be the same length as total_nodes");
+        let mut basis = lagrange_basis_at_0(self.idx as u32, &node_indices);
         basis.mul_assign(&Fl::from_bigint(&self.keyshare.as_ref().unwrap().share));
         basis
     }
@@ -220,10 +223,10 @@ impl Node {
     // }
 
     /// Performs a partial decryption on C1 of the ElGamal encrypted value (C1, C2). Returns secret share * my lagrange basis * C1
-    pub fn partial_decrypt(&self, c1: &Point) -> Point {
+    pub fn partial_decrypt(&self, c1: &Point, nodes_to_decrypt_from: &Vec<u32>) -> Point {
         assert!(c1.on_curve(), "Error: C1 is not on the curve!");
         assert!(c1.in_subgroup(), "Error: C1 is not in the subgroup!");
-        c1.mul_scalar(&self.secret_lagrange_basis_at_0().to_bigint())
+        c1.mul_scalar(&self.secret_lagrange_basis_at_0(nodes_to_decrypt_from).to_bigint())
     }
 
     
@@ -347,7 +350,7 @@ mod tests {
     #[test]
     fn test_partial_decryption() {
         let [mut node1, mut node2, mut node3] = init_test_nodes::<3,3>();
-        
+        let nodes_to_decrypt_from: Vec<u32> = vec![1, 2, 3];
         // simulate the nodes sharing one of their evaluations with the other nodes 
         let from_node1 = node1.keygen_step1(3);
         let from_node2 = node2.keygen_step1(3);
@@ -367,14 +370,14 @@ mod tests {
         let public_nonce = B8.mul_scalar(nonce);
 
         // Try decrypting
-        let d1 = node1.partial_decrypt(&public_nonce);
-        let d2 = node2.partial_decrypt(&public_nonce);
-        let d3 = node3.partial_decrypt(&public_nonce);
+        let d1 = node1.partial_decrypt(&public_nonce, &nodes_to_decrypt_from);
+        let d2 = node2.partial_decrypt(&public_nonce, &nodes_to_decrypt_from);
+        let d3 = node3.partial_decrypt(&public_nonce, &nodes_to_decrypt_from);
         
         //[nonce * L_i(0)] B8
-        let d1_ = public_nonce.mul_scalar(&node1.secret_lagrange_basis_at_0().to_bigint());
-        let d2_ = public_nonce.mul_scalar(&node2.secret_lagrange_basis_at_0().to_bigint());
-        let d3_ = public_nonce.mul_scalar(&node3.secret_lagrange_basis_at_0().to_bigint());
+        let d1_ = public_nonce.mul_scalar(&node1.secret_lagrange_basis_at_0(&nodes_to_decrypt_from).to_bigint());
+        let d2_ = public_nonce.mul_scalar(&node2.secret_lagrange_basis_at_0(&nodes_to_decrypt_from).to_bigint());
+        let d3_ = public_nonce.mul_scalar(&node3.secret_lagrange_basis_at_0(&nodes_to_decrypt_from).to_bigint());
 
         assert!(d1.equals(d1_));
         assert!(d2.equals(d2_));
@@ -386,6 +389,8 @@ mod tests {
     fn test_dh_reconstruction() {
 
         let [mut node1, mut node2, mut node3] = init_test_nodes::<3,3>();
+        let nodes_to_decrypt_from: Vec<u32> = vec![1, 2, 3];
+
         // simulate the nodes sharing one of their evaluations with the other nodes 
         let from_node1 = node1.keygen_step1(3);
         let from_node2 = node2.keygen_step1(3);
@@ -410,9 +415,9 @@ mod tests {
         let public_nonce = B8.mul_scalar(nonce);
 
         // Try decrypting
-        let d1 = node1.partial_decrypt(&public_nonce);
-        let d2 = node2.partial_decrypt(&public_nonce);
-        let d3 = node3.partial_decrypt(&public_nonce);
+        let d1 = node1.partial_decrypt(&public_nonce, &nodes_to_decrypt_from);
+        let d2 = node2.partial_decrypt(&public_nonce, &nodes_to_decrypt_from);
+        let d3 = node3.partial_decrypt(&public_nonce, &nodes_to_decrypt_from);
         assert!(d1.add(&d2).add(&d3).equals(
             B8.mul_scalar(&(secret_key_nobody_knows)).mul_scalar(&nonce)
         ));
@@ -428,7 +433,8 @@ mod tests {
         let mut node1 = Node::init_rnd(1,3, 3);
         let mut node2 = Node::init_rnd(2,3, 3);
         let mut node3 = Node::init_rnd(3,3, 3);
-        
+        let nodes_to_decrypt_from: Vec<u32> = vec![1, 2, 3];
+
         // simulate the nodes sharing one of their evaluations with the other nodes 
         let from_node1 = node1.keygen_step1(3);
         let from_node2 = node2.keygen_step1(3);
@@ -448,9 +454,9 @@ mod tests {
             node2.keygen_polynomial_at_0.clone() + 
             node3.keygen_polynomial_at_0.clone() ;
         
-        let mut result = node1.secret_lagrange_basis_at_0();
-        result.add_assign(  &node2.secret_lagrange_basis_at_0());
-        result.add_assign(  &node3.secret_lagrange_basis_at_0());
+        let mut result = node1.secret_lagrange_basis_at_0(&nodes_to_decrypt_from);
+        result.add_assign(  &node2.secret_lagrange_basis_at_0(&nodes_to_decrypt_from));
+        result.add_assign(  &node3.secret_lagrange_basis_at_0(&nodes_to_decrypt_from));
         
         assert!(result.eq(&Fl::from_bigint(&secret_key_nobody_knows)), "failed to reconstruct secret key from lagrange bases");
 
@@ -462,7 +468,7 @@ mod tests {
     fn test_encrypt_decrypt() {
 
        let [mut node1, mut node2, mut node3] = init_test_nodes::<3,3>();
-        
+        let nodes_to_decrypt_from: Vec<u32> = vec![1,2,3];
         // simulate the nodes sharing one of their evaluations with the other nodes 
         let from_node1 = node1.keygen_step1(3);
         let from_node2 = node2.keygen_step1(3);
@@ -486,9 +492,9 @@ mod tests {
         // Check C2 was computed correctly
         let encrypted = encrypt_elgamal(&shared_pubkey, nonce, &some_msg);
 
-        let d1 = node1.partial_decrypt(&encrypted.c1);
-        let d2 = node2.partial_decrypt(&encrypted.c1);
-        let d3 = node3.partial_decrypt(&encrypted.c1);
+        let d1 = node1.partial_decrypt(&encrypted.c1, &nodes_to_decrypt_from);
+        let d2 = node2.partial_decrypt(&encrypted.c1, &nodes_to_decrypt_from);
+        let d3 = node3.partial_decrypt(&encrypted.c1, &nodes_to_decrypt_from);
 
         let decrypted = decrypt(encrypted, vec![d1,d2,d3], 3);
         assert!(some_msg.equals(decrypted));

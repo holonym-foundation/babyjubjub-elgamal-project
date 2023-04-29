@@ -82,33 +82,29 @@ impl Polynomial {
 
 }
 
-
-// Returns L_i(0) where L_i(x) is the unique polynomical such that L_i(i) = 1 and L_i(x) = 0 for all x other than i in range 0..n
-pub fn lagrange_basis_at_0(i: u32, n:u32) -> Fl {
+// NOTE: look more into security of a user bieng able to ask "decrypt this with nodes i1, i2, and i3", then being able to asl "decrypt this with nodes i4, i5, and i6". Does this reveal any information about the private key? I would assume not because this is standard, but seems strange and still worth more detailed analysis.
+// Returns L_i(0) where L_i(x) is the unique polynomical such that L_i(i) = 1 and L_i(x) = 0 for all x in set indices other than i
+pub fn lagrange_basis_at_0(i: u32, indices: &Vec<u32>) -> Fl {
     assert!(i > 0, "i must be greater than 0");
-    assert!(n > 0, "n must be greater than 0");
+    // assert!(n > 0, "n must be greater than 0");
     let one = Fl::one();
     let mut acc = one.clone();
     let mut j: u32 = 1;
     let i_ = Fl::from_str(&i.to_string()).unwrap();
     // since we are evaluating L_i(x) where x=0, can set x to 0 in formula for lagrange basis. Formula becomes becomes product of j / (j-i) for all j not equal to i
-    while j <= n {
-        if j == i {
-            j+=1;
-            continue;
+    // while j <= n {
+    for j in indices.iter() {
+        if *j != i {
+            let j_: Fl = Fl::from_str(&j.to_string()).unwrap();
+            // numerator = j, demoninator = j - i
+            let mut denominator = j_.clone();
+            denominator.sub_assign(&i_);
+            
+            acc.mul_assign(&j_);
+
+            acc.mul_assign(&denominator.inverse().unwrap());
         }
-        let j_: Fl = Fl::from_str(&j.to_string()).unwrap();
-        // numerator = j, demoninator = j - i
-        let mut denominator = j_.clone();
-        denominator.sub_assign(&i_);
-        
-        acc.mul_assign(&j_);
-
-        acc.mul_assign(&denominator.inverse().unwrap());
-
-        j+=1;
     }
-
     acc
 }
 
@@ -143,13 +139,13 @@ mod tests {
     }
 
     #[test]
-    fn test_lagrange_basis_at_0() {
+    fn test_lagrange_basis_at_0_2of2() {
         // TODO: refactor this to be more concise
 
         // test for reconstructing y-intercept of line with points (1,5) and (2,6). test that y-intercept is 4
         let n: u32 = 2; // n  =  number of shares  =  degree of polynomial + 1
-        let l1 = lagrange_basis_at_0(1 as u32, n);
-        let l2 = lagrange_basis_at_0(2 as u32, n);
+        let l1 = lagrange_basis_at_0(1 as u32, &vec![1,2]);
+        let l2 = lagrange_basis_at_0(2 as u32, &vec![1,2]);
 
         let y1 = Fl::from_str("5").unwrap();
         let y2 = Fl::from_str("6").unwrap();
@@ -166,15 +162,17 @@ mod tests {
         result.add_assign(&part2);
 
         assert!(result.eq(&Fl::from_str("4").unwrap()));
+    }
 
-
-
-        // Now, try the same thing but for a degree-3 polynomial: 3x^2+100x+123. Points are (1, 226), (2, 335) and (3, 450)
-        // test for reconstructing y-intercept of line with points (1,5) and (2,6). test that y-intercept is 4
-        let n: u32 = 3; // n  =  number of shares  =  degree of polynomial + 1
-        let l1 = lagrange_basis_at_0(1 as u32, n);
-        let l2 = lagrange_basis_at_0(2 as u32, n);
-        let l3 = lagrange_basis_at_0(3 as u32, n);
+    // Now, try the same thing but for a degree-2 polynomial: 3x^2+100x+123. Points are (1, 226), (2, 335) and (3, 450)
+    // Test that y-intercept is 123
+    #[test]
+    fn test_lagrange_basis_at_0_3of3() {
+        let nodes_to_decrypt_from: Vec<u32> = vec![1,2,3];
+        // Now, try the same thing but for a degree-2 polynomial (3/3 secret shared)
+        let l1 = lagrange_basis_at_0(1 as u32, &nodes_to_decrypt_from);
+        let l2 = lagrange_basis_at_0(2 as u32, &nodes_to_decrypt_from);
+        let l3 = lagrange_basis_at_0(3 as u32, &nodes_to_decrypt_from);
 
         let y1 = Fl::from_str("226").unwrap();
         let y2 = Fl::from_str("335").unwrap();
@@ -197,6 +195,62 @@ mod tests {
         result.add_assign(&part2);
         result.add_assign(&part3);
         assert!(result.eq(&Fl::from_str("123").unwrap()));
+        
+    }
+
+    // Now, try the same thing but for a degree-1 polynomial: 123x+321. Points are (1, 444), (2, 567) and (3, 690)
+    // Test that y-intercept is 321 and can be reconstructed from nodes 1 and 2, nodes 2 and 3, and nodes 1 and 3
+    #[test]
+    fn test_lagrange_basis_at_0_2of3_successful_reconsrtruction_for_each_pair_of_2_nodes() {
+        // Each of these pairs should be sufficient to reconstruct the shared secret
+        // Pairs consist of node indices and their corresponding lagrange bases at 0
+        let pairs: Vec<[(u32, Fl); 2]> = vec![
+            [
+                (1, lagrange_basis_at_0(1 as u32, &vec![1,2])),
+                (2, lagrange_basis_at_0(2 as u32, &vec![1,2]))
+            ],
+            [
+                (2, lagrange_basis_at_0(2 as u32, &vec![2,3])),
+                (3, lagrange_basis_at_0(3 as u32, &vec![2,3]))
+            ],
+            [
+                (1, lagrange_basis_at_0(1 as u32, &vec![1,3])),
+                (3, lagrange_basis_at_0(3 as u32, &vec![1,3]))
+            ]
+        ];
+        
+        let y1 = Fl::from_str("444").unwrap();
+        let y2 = Fl::from_str("567").unwrap();
+        let y3 = Fl::from_str("690").unwrap();
+
+        let secret_share = |x| {
+            if x == 1 {
+                y1
+            } else if x == 2 {
+                y2
+            } else if x == 3 {
+                y3
+            }
+            else {
+                panic!("Invalid node index")
+            }
+        };
+
+        pairs.iter().for_each(|pair|{
+            let (idx0, lb0) = pair[0];
+            let (idx1, lb1) = pair[1];
+            
+            // Add up the secret shares * lagrange bases at 0 for each pair. This should recosntruct the secret, which should be the same for each pair
+            let mut result = lb0.clone();
+            result.mul_assign(&secret_share(idx0));
+
+            let mut part2 = lb1.clone();
+            part2.mul_assign(&secret_share(idx1));
+
+            result.add_assign(&part2);
+            assert!(result.eq(&Fl::from_str("321").unwrap()));
+
+        });
         
     }
 
