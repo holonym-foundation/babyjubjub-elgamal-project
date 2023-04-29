@@ -1,16 +1,22 @@
-use std::env;
-use babyjubjub_elgamal::Node;
+use std::env::{self, VarError};
+use babyjubjub_elgamal::{Node, KeygenHelper};
 use babyjubjub_rs::Point;
 use rocket::{State, serde::json::Json, response::status::BadRequest};
 use rocket::{Request, Response, fairing::{Fairing, Info, Kind}, http::{Header, Status}};
+use serde::{Serialize, Deserialize};
 
 #[macro_use] extern crate rocket;
 
-pub struct Cors;
 
 const ALLOW_ORIGINS: [&'static str; 2] = ["https://example.com", "http://localhost:3000"];
 const THRESHOLD_NODES: usize = 2;
 const TOTAL_NODES: usize = 2;
+pub struct Cors;
+#[derive(Serialize,Deserialize)]
+pub struct DecryptionRequest {
+    pub c1: Point,
+    pub nodes_to_decrypt_from: Vec<u32>,
+}
 
 #[rocket::async_trait]
 impl Fairing for Cors {
@@ -38,22 +44,23 @@ impl Fairing for Cors {
 #[get("/")]
 fn do_nothing() -> &'static str { "GM" }
 
-#[post("/decrypt", format = "json", data = "<point>")]
-fn index(node: &State<Node>, point: Json<Point>) -> Result<String, BadRequest<&'static str>> {
+#[post("/decrypt", format = "json", data = "<decrypt_request>")]
+fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> Result<String, BadRequest<&'static str>> {
     // Check it is safe to proceed, i.e. point is on the curve and in subgroup
-    if !point.on_curve() {
+    if !decrypt_request.c1.on_curve() {
         return Err(BadRequest(Some("Not on curve")));
     }
 
     // Note: in_subgroup just checks that order of the point is the order of the subgroup
-    if !point.in_subgroup() {
+    if !decrypt_request.c1.in_subgroup() {
         return Err(BadRequest(Some("Not in subgroup")));
     }
 
-    let result = node.partial_decrypt(&point); 
+    let result = node.partial_decrypt(&decrypt_request.c1, &decrypt_request.nodes_to_decrypt_from); 
     Ok(serde_json::to_string(&result).unwrap())
     // format!("Hello, world! my private key is {}. you want me to multiply it by {:?}", privkey, point)
 }
+
 
 #[launch]
 fn rocket() -> _ {
@@ -66,12 +73,37 @@ fn rocket() -> _ {
         .parse()
         .unwrap();
 
-    let node: Node = Node::init_from_seed(
+    let my_node_number: usize = env::var("ZK_ESCROW_NODE_NUMBER")
+        .expect("ZK_ESCROW_NODE_NUMBER must be an environment variable. It should be an integer between 1 and the total number of nodes.")
+        .parse()
+        .unwrap();
+
+    let mut node: Node = Node::init_from_seed(
         &hex::decode(privkey).unwrap(), 
         my_node_number,
         THRESHOLD_NODES,
         TOTAL_NODES, 
     );
+
+    let keygen_evals_for_me: Vec<String>;
+    // If keygen step one has not been done, do it now
+    match env::var("ZK_ESCROW_KEYGEN_EVALUATIONS_FOR_MY_NODE") {
+        Ok(s) => { 
+            println!("String is {}", s);
+            let keygen_helpers: Vec<KeygenHelper> = serde_json::from_str(&s.replace("\\", "")).unwrap(); 
+            let as_pointers: Vec<&KeygenHelper> = keygen_helpers.iter().collect();
+            node.set_keyshare(&as_pointers);
+        },
+        Err(e) => {
+            let deleteme = node.keygen_step1(TOTAL_NODES);
+            let deleteme2 = serde_json::to_string(&deleteme).unwrap();
+            let deleteme3: Vec<KeygenHelper> = serde_json::from_str(&deleteme2).unwrap();
+            println!("abc {:?} !!!!!! {:?}", deleteme, deleteme3);
+            let keygen = node.keygen_step1(TOTAL_NODES);
+            panic!("Keygen step 1 has not been done yet. Please perform keygen on all nodes by exchanging the shares meant for them. Then store an array of the KeygenHelpers for your node in JSON format as the env var ZK_ESCROW_KEYGEN_EVALUATIONS_FOR_MY_NODE. Then you may run this again. My KeygenHelpers for the other nodes are: {:?}", serde_json::to_string(&keygen).unwrap());
+        }
+    }
+
     rocket::build()
     .manage(node)
     .attach(Cors)
