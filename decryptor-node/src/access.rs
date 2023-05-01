@@ -13,12 +13,4 @@ pub async fn has_access(c1x: &[u8; 32]) -> bool {
     let address = "0x3A3b5aEF636D2131dd7Ab8413f104c338E723357".parse::<Address>().unwrap();
     let the_sac = SimpleAccessControl::new(address, Arc::clone(&client));
     the_sac.has_access(c1x.into()).await.unwrap()
-    // let mut ha = false;
-    // futures::executor::block_on(async {
-        // println!("this ran");
-        // ha = the_sac.has_access(c1x.into()).await.unwrap();
-        // println!("has access? {}", ha);
-    // });
-    // ha
-
 }
