@@ -1,9 +1,9 @@
-use std::env::{self, VarError};
+use std::env;
+
 use access::has_access;
 use babyjubjub_elgamal::{Node, KeygenHelper};
 use babyjubjub_rs::Point;
 use rocket::{State, serde::json::Json, response::status::BadRequest};
-use rocket::{Request, Response, fairing::{Fairing, Info, Kind}, http::{Header, Status}};
 use serde::{Serialize, Deserialize};
 use dotenv::dotenv;
 
@@ -13,39 +13,15 @@ extern crate rocket;
 mod access;
 
 
-// const ALLOW_ORIGINS: [&'static str; 2] = ["https://example.com", "http://localhost:3000"];
 const THRESHOLD_NODES: usize = 2;
 const TOTAL_NODES: usize = 2;
 
-// pub struct Cors;
 #[derive(Serialize,Deserialize)]
 pub struct DecryptionRequest {
     pub c1: Point,
     pub nodes_to_decrypt_from: Vec<u32>,
 }
 
-// #[rocket::async_trait]
-// impl Fairing for Cors {
-//     fn info(&self) -> Info {
-//         Info {
-//             name: "Fairing to add the CORS headers",
-//             kind: Kind::Response
-//         }
-//     }
-//     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
-//         let _origin = _request.headers().get_one("origin").unwrap();
-//         let origin = if ALLOW_ORIGINS.contains(&_origin) { _origin } else { "null" };
-
-//         response.set_status(Status::new(200));
-        
-//         response.set_header(Header::new("Access-Control-Allow-Origin", origin));
-//         response.set_header(Header::new("Access-Control-Allow-Methods", "POST, GET"));
-//         response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
-//         response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
-
-//     }
-// }
-// this route is solely so that a TLS connection can be started early before any user action and automatically cached by both parties. This avoids the handshake latency overhead when the user requests the OPRF
 #[get("/")]
 fn do_nothing() -> &'static str { "GM" }
 
@@ -69,10 +45,7 @@ fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> Result
 #[launch]
 fn rocket() -> _ {
     dotenv().ok();
-    for (key, val) in env::vars() {
-        println!("{}: {}", key, val);
-    }
-    println!("has access {}", has_access(123));
+
     // Get the node's private key seed key env var
     let privkey: String = env::var("ZK_ESCROW_SECRET_SEED")
         .expect("ZK_ESCROW_SECRET_SEED must be an environment variable. It should be a random 32-byte hex string from a secure random number generator.");
@@ -97,10 +70,6 @@ fn rocket() -> _ {
             node.set_keyshare(&as_pointers);
         },
         Err(e) => {
-            let deleteme = node.keygen_step1(TOTAL_NODES);
-            let deleteme2 = serde_json::to_string(&deleteme).unwrap();
-            let deleteme3: Vec<KeygenHelper> = serde_json::from_str(&deleteme2).unwrap();
-            println!("abc {:?} !!!!!! {:?}", deleteme, deleteme3);
             let keygen = node.keygen_step1(TOTAL_NODES);
             panic!("Keygen step 1 has not been done yet. Please perform keygen on all nodes by exchanging the shares meant for them. Then store an array of the KeygenHelpers for your node in JSON format as the env var ZK_ESCROW_KEYGENS4ME. Then you may run this again. My KeygenHelpers for the other nodes are: {:?}", serde_json::to_string(&keygen).unwrap());
         }
@@ -108,6 +77,5 @@ fn rocket() -> _ {
 
     rocket::build()
     .manage(node)
-    // .attach(Cors)
     .mount("/", routes![index, do_nothing])
 }
