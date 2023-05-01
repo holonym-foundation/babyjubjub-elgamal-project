@@ -2,19 +2,18 @@
 name = "decryptor-node"
 version = "0.1.0"
 edition = "2021"
-
+rust-version = "1.56"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 babyjubjub-rs = { path = "../babyjubjub-rs-with-elgamal"}
 babyjubjub-elgamal = { path = "../main"}
-num-bigint = "0.4.3"
 rocket = {version = "=0.5.0-rc.3", features = ["json"]}
 # rocket_cors = "0.5.2"
 # rocket_contrib = "0.4.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 hex = "0.4.3"
-ethers = { version = "2.0.3", features = ["legacy"] }
+ethers = { version = "1.0.2", features = ["legacy"] }
 tokio = "1.28.0"
 

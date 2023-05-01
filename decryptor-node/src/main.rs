@@ -1,4 +1,5 @@
 use std::env::{self, VarError};
+use access::has_access;
 use babyjubjub_elgamal::{Node, KeygenHelper};
 use babyjubjub_rs::Point;
 use rocket::{State, serde::json::Json, response::status::BadRequest};
