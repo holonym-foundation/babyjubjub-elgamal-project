@@ -1,7 +1,3 @@
-// use ethers::{
-//     core::types::Address,
-//     providers::{Http, Provider},
-// };
 use ethers::contract::abigen;
 use ethers::prelude::*;
 use std::{sync::Arc, env};

@@ -5,6 +5,7 @@ use babyjubjub_rs::Point;
 use rocket::{State, serde::json::Json, response::status::BadRequest};
 use rocket::{Request, Response, fairing::{Fairing, Info, Kind}, http::{Header, Status}};
 use serde::{Serialize, Deserialize};
+use dotenv::dotenv;
 
 #[macro_use] 
 extern crate rocket;
@@ -67,6 +68,10 @@ fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> Result
 
 #[launch]
 fn rocket() -> _ {
+    dotenv().ok();
+    for (key, val) in env::vars() {
+        println!("{}: {}", key, val);
+    }
     println!("has access {}", has_access(123));
     // Get the node's private key seed key env var
     let privkey: String = env::var("ZK_ESCROW_SECRET_SEED")
@@ -85,7 +90,7 @@ fn rocket() -> _ {
     );
 
     // If keygen step one has not been done, do it now
-    match env::var("ZK_ESCROW_KEYGEN_EVALUATIONS_FOR_MY_NODE") {
+    match env::var("ZK_ESCROW_KEYGENS4ME") {
         Ok(s) => { 
             let keygen_helpers: Vec<KeygenHelper> = serde_json::from_str(&s.replace("\\", "")).unwrap(); 
             let as_pointers: Vec<&KeygenHelper> = keygen_helpers.iter().collect();
@@ -97,7 +102,7 @@ fn rocket() -> _ {
             let deleteme3: Vec<KeygenHelper> = serde_json::from_str(&deleteme2).unwrap();
             println!("abc {:?} !!!!!! {:?}", deleteme, deleteme3);
             let keygen = node.keygen_step1(TOTAL_NODES);
-            panic!("Keygen step 1 has not been done yet. Please perform keygen on all nodes by exchanging the shares meant for them. Then store an array of the KeygenHelpers for your node in JSON format as the env var ZK_ESCROW_KEYGEN_EVALUATIONS_FOR_MY_NODE. Then you may run this again. My KeygenHelpers for the other nodes are: {:?}", serde_json::to_string(&keygen).unwrap());
+            panic!("Keygen step 1 has not been done yet. Please perform keygen on all nodes by exchanging the shares meant for them. Then store an array of the KeygenHelpers for your node in JSON format as the env var ZK_ESCROW_KEYGENS4ME. Then you may run this again. My KeygenHelpers for the other nodes are: {:?}", serde_json::to_string(&keygen).unwrap());
         }
     }
 

@@ -16,4 +16,5 @@ serde_json = "1.0"
 hex = "0.4.3"
 ethers = { version = "1.0.2", features = ["legacy"] }
 tokio = "1.28.0"
+dotenv = "0.15.0"
 
