@@ -16,34 +16,34 @@ const ALLOW_ORIGINS: [&'static str; 2] = ["https://example.com", "http://localho
 const THRESHOLD_NODES: usize = 2;
 const TOTAL_NODES: usize = 2;
 
-pub struct Cors;
+// pub struct Cors;
 #[derive(Serialize,Deserialize)]
 pub struct DecryptionRequest {
     pub c1: Point,
     pub nodes_to_decrypt_from: Vec<u32>,
 }
 
-#[rocket::async_trait]
-impl Fairing for Cors {
-    fn info(&self) -> Info {
-        Info {
-            name: "Fairing to add the CORS headers",
-            kind: Kind::Response
-        }
-    }
-    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
-        let _origin = _request.headers().get_one("origin").unwrap();
-        let origin = if ALLOW_ORIGINS.contains(&_origin) { _origin } else { "null" };
+// #[rocket::async_trait]
+// impl Fairing for Cors {
+//     fn info(&self) -> Info {
+//         Info {
+//             name: "Fairing to add the CORS headers",
+//             kind: Kind::Response
+//         }
+//     }
+//     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+//         let _origin = _request.headers().get_one("origin").unwrap();
+//         let origin = if ALLOW_ORIGINS.contains(&_origin) { _origin } else { "null" };
 
-        response.set_status(Status::new(200));
+//         response.set_status(Status::new(200));
         
-        response.set_header(Header::new("Access-Control-Allow-Origin", origin));
-        response.set_header(Header::new("Access-Control-Allow-Methods", "POST, GET"));
-        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
-        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+//         response.set_header(Header::new("Access-Control-Allow-Origin", origin));
+//         response.set_header(Header::new("Access-Control-Allow-Methods", "POST, GET"));
+//         response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+//         response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
 
-    }
-}
+//     }
+// }
 // this route is solely so that a TLS connection can be started early before any user action and automatically cached by both parties. This avoids the handshake latency overhead when the user requests the OPRF
 #[get("/")]
 fn do_nothing() -> &'static str { "GM" }
@@ -78,11 +78,6 @@ fn rocket() -> _ {
         .parse()
         .unwrap();
 
-    let my_node_number: usize = env::var("ZK_ESCROW_NODE_NUMBER")
-        .expect("ZK_ESCROW_NODE_NUMBER must be an environment variable. It should be an integer between 1 and the total number of nodes.")
-        .parse()
-        .unwrap();
-
     let mut node: Node = Node::init_from_seed(
         &hex::decode(privkey).unwrap(), 
         my_node_number,
@@ -90,7 +85,6 @@ fn rocket() -> _ {
         TOTAL_NODES, 
     );
 
-    let keygen_evals_for_me: Vec<String>;
     // If keygen step one has not been done, do it now
     match env::var("ZK_ESCROW_KEYGEN_EVALUATIONS_FOR_MY_NODE") {
         Ok(s) => { 
@@ -110,6 +104,6 @@ fn rocket() -> _ {
 
     rocket::build()
     .manage(node)
-    .attach(Cors)
+    // .attach(Cors)
     .mount("/", routes![index, do_nothing])
 }
