@@ -12,7 +12,7 @@ extern crate rocket;
 mod access;
 
 
-const ALLOW_ORIGINS: [&'static str; 2] = ["https://example.com", "http://localhost:3000"];
+// const ALLOW_ORIGINS: [&'static str; 2] = ["https://example.com", "http://localhost:3000"];
 const THRESHOLD_NODES: usize = 2;
 const TOTAL_NODES: usize = 2;
 
@@ -62,7 +62,6 @@ fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> Result
 
     let result = node.partial_decrypt(&decrypt_request.c1, &decrypt_request.nodes_to_decrypt_from); 
     Ok(serde_json::to_string(&result).unwrap())
-    // format!("Hello, world! my private key is {}. you want me to multiply it by {:?}", privkey, point)
 }
 
 
