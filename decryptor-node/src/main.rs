@@ -68,7 +68,7 @@ fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> Result
 
 #[launch]
 fn rocket() -> _ {
-    has_access();
+    println!("has access {}", has_access(123));
     // Get the node's private key seed key env var
     let privkey: String = env::var("ZK_ESCROW_SECRET_SEED")
         .expect("ZK_ESCROW_SECRET_SEED must be an environment variable. It should be a random 32-byte hex string from a secure random number generator.");
