@@ -3,12 +3,10 @@ use std::{env, str::FromStr};
 use access::has_access;
 use babyjubjub_elgamal::{Node, KeygenHelper};
 use babyjubjub_rs::{Point, ToDecimalString};
-use futures::executor::{self, block_on};
 use num_bigint::BigInt;
 use rocket::{State, serde::json::Json, response::status::BadRequest};
 use serde::{Serialize, Deserialize};
 use dotenv::dotenv;
-use tokio::runtime::Runtime;
 
 #[macro_use] 
 extern crate rocket;
@@ -44,15 +42,6 @@ async fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> 
     // See if the point (as represented by c1x) should be decrypted
     let c1x = decrypt_request.c1.x.to_dec_string();
     let (_, c1x_bytes) = BigInt::from_str(&c1x).unwrap().to_bytes_be();
-
-    // let handle = Runtime::handle();
-    // block_on(async {
-    //     handle.spawn(async {
-    //         println!("ring.......");
-    //         println!("has access {}", has_access(&[0u8; 32]).await);
-    //     });
-        
-    // });
 
 
     // Asynchronous call to has_access on the c1x_bytes

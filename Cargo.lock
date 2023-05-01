@@ -850,7 +850,6 @@ dependencies = [
  "babyjubjub-rs",
  "dotenv",
  "ethers",
- "futures",
  "hex",
  "num-bigint 0.4.3",
  "rocket",

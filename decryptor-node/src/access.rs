@@ -1,7 +1,5 @@
 use ethers::contract::abigen;
 use ethers::prelude::*;
-use futures::Future;
-use tokio::runtime::Handle;
 use std::{sync::Arc, env};
 
 #[tokio::main]
