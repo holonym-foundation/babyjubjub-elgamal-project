@@ -6,13 +6,16 @@ use rocket::{State, serde::json::Json, response::status::BadRequest};
 use rocket::{Request, Response, fairing::{Fairing, Info, Kind}, http::{Header, Status}};
 use serde::{Serialize, Deserialize};
 
+#[macro_use] 
+extern crate rocket;
+
 mod access;
-#[macro_use] extern crate rocket;
 
 
 const ALLOW_ORIGINS: [&'static str; 2] = ["https://example.com", "http://localhost:3000"];
 const THRESHOLD_NODES: usize = 2;
 const TOTAL_NODES: usize = 2;
+
 pub struct Cors;
 #[derive(Serialize,Deserialize)]
 pub struct DecryptionRequest {
