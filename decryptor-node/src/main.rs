@@ -45,7 +45,7 @@ async fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> 
 
 
     // Asynchronous call to has_access on the c1x_bytes
-    let mut ha = tokio::task::spawn_blocking(move || {
+    let ha = tokio::task::spawn_blocking(move || {
         has_access(&c1x_bytes.as_slice().try_into().unwrap())
     }).await.expect("failed to query the blockchain for access to data");
     println!("has access xyz {}", ha);
