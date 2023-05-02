@@ -23,9 +23,9 @@ pub async fn has_access(c1x: &[u8; 32]) -> bool {
 // The node number says who the signature is for (preventing replay attacks)
 // The ECDSA is of the message "node_number:C1x". 
 // It is represented by signature over secp256k1, represented by the (r, s, v) tuple 
-pub async fn authorize_auditor_request(my_node_number: u32, c1x: String, r: &[u8; 32], s: &[u8; 32], v: u64) {
-   let sig: Signature = Signature { r: r.into(), s: s.into(), v: v.into() };
-   let msg = format!("{}:{}", my_node_number, c1x);
-   let adr = ADDRESS.parse::<Address>().unwrap();
-sig.verify(msg, adr);
+pub fn request_is_authorized(my_node_number: u32, c1x: String, sig: Signature/*r: &[u8; 32], s: &[u8; 32], v: u64*/) -> Result<(), SignatureError> {
+    // let sig: Signature = Signature { r: r.into(), s: s.into(), v: v.into() };
+    let msg = format!("{}:{}", my_node_number, c1x);
+    let adr = ADDRESS.parse::<Address>().unwrap();
+    sig.verify(msg, adr)
 }

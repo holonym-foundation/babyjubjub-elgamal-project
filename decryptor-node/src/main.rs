@@ -1,11 +1,11 @@
 use std::{env, str::FromStr};
 
-use access::has_access;
+use access::{has_access, request_is_authorized};
 use babyjubjub_elgamal::{Node, KeygenHelper};
-use babyjubjub_rs::{Point, ToDecimalString};
+use babyjubjub_rs::{ToDecimalString};
+use decryptor_node::DecryptionRequest;
 use num_bigint::BigInt;
 use rocket::{State, serde::json::Json, response::status::BadRequest};
-use serde::{Serialize, Deserialize};
 use dotenv::dotenv;
 
 #[macro_use] 
@@ -13,16 +13,8 @@ extern crate rocket;
 
 mod access;
 
-
 const THRESHOLD_NODES: usize = 2;
 const TOTAL_NODES: usize = 2;
-
-#[derive(Serialize,Deserialize)]
-pub struct DecryptionRequest {
-    pub c1: Point,
-    pub nodes_to_decrypt_from: Vec<u32>,
-    // pub auth: String,
-}
 
 #[get("/")]
 fn do_nothing() -> &'static str { "GM" }
@@ -39,6 +31,12 @@ async fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> 
         return Err(BadRequest(Some("Not in subgroup")));
     }
 
+    // TODO: check that this acutally works
+    // Check the request is signed by the auditor
+    match request_is_authorized(node.idx.try_into().unwrap(), decrypt_request.c1.x.to_dec_string(), decrypt_request.sig) {
+        SignatureError => return Err(BadRequest(Some("You are not the auditor"))),
+        _ => (),
+    };
     // See if the point (as represented by c1x) should be decrypted
     let c1x = decrypt_request.c1.x.to_dec_string();
     let (_, c1x_bytes) = BigInt::from_str(&c1x).unwrap().to_bytes_be();
@@ -53,6 +51,7 @@ async fn index(node: &State<Node>, decrypt_request: Json<DecryptionRequest>) -> 
     if !ha {
         return Err(BadRequest(Some("No access")));
     }
+    
 
     let result = node.partial_decrypt(&decrypt_request.c1, &decrypt_request.nodes_to_decrypt_from); 
     Ok(serde_json::to_string(&result).unwrap())

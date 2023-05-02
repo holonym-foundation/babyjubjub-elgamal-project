@@ -843,6 +843,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "decryption-client"
+version = "0.1.0"
+dependencies = [
+ "decryptor-node",
+]
+
+[[package]]
 name = "decryptor-node"
 version = "0.1.0"
 dependencies = [

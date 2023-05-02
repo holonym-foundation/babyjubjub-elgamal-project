@@ -119,11 +119,11 @@ impl PrivateKeyShare {
 #[derive(Serialize,Deserialize)]
 pub struct Node {
     /// which number node is it. Starts at 1, not 0, as node 0 doesn't exist. If it did, it would know the secret polynomial evaluated at 0, which is the secret key
-    idx: usize, 
+    pub idx: usize, 
     /// how many nodes will be needed to decrypt, so that this node knows what degree of polynomial it can decrypt
-    threshold_nodes: usize, 
+    pub threshold_nodes: usize, 
     /// how many nodes there will be total, so that this node knows how many parties to do key generation with
-    total_nodes: usize, 
+    pub total_nodes: usize, 
     /// polynomial used to generate the distributed key
     keygen_polynomial: Polynomial,
     /// `keygen_polynomial`'s evaluation at 0 (used to generate the distributed key)
