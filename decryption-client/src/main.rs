@@ -1,9 +1,9 @@
-use std::env::{args, self};
-
-use babyjubjub_rs::{Point, ElGamalEncryption, ToDecimalString};
+use std::{env::{args, self}, vec, str::FromStr};
+use ethers_signers::{Signer, Wallet, LocalWallet};
+use babyjubjub_rs::{Point, ElGamalEncryption, ToDecimalString, Fr, FrBigIntConversion};
 use decryptor_node::DecryptionRequest;
-use ethers::types::Signature;
 use serde::{Deserialize, Serialize};
+use num_bigint::BigInt;
 #[derive(Serialize, Deserialize)]
 pub struct PrfRequest {
     #[serde(rename = "API_KEY")]
@@ -11,17 +11,11 @@ pub struct PrfRequest {
     #[serde(rename = "prfIn")]
     prf_in: String
 }
-// #[derive(Serialize, Deserialize)]
-// pub struct PrfResponse {
-//     #[serde::rename = "prfOut"]
-//     prf_out: String
-// }
-
-fn main() {
+#[tokio::main]
+async fn main() {
     // Uncomment:
         // let json_ciphertext = args().nth(1).unwrap();
         // let ciphertext: ElGamalEncryption = serde_json::from_str(&json_ciphertext).unwrap(); 
-        // let private_key = env::var("ZK_ESCROW_AUTHORITY_PRIVATE_KEY").expect("Expected ZK_ESCROW_AUTHORITY_PRIVATE_KEY in the environment");
     let api_key = env::var("ZK_ESCROW_AUTHORITY_API_KEY").expect("Expected ZK_ESCROW_AUTHORITY_API_KEY in the environment");
     // Just decrypt from nodes 1 and 2 for now:
     let nodes_to_decrypt_from: Vec<u32> = vec![1, 2];
@@ -40,20 +34,30 @@ fn main() {
     .text()
     .unwrap();
     println!("response: {:?}", prf);
-    // .json::<PrfResponse>().unwrap();
-    //     .json::<PrfResponse>()?;
-    // println!("PRF output: {}", prf.prfOut);
-
+    let sini = BigInt::from_str("69").unwrap();
+    println!(" Signed Decryption Request: {:?}", make_signed_decryptreq(
+        &ElGamalEncryption {
+            c1: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) },
+            c2: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) }
+        }, 
+    &1u32, 
+    &vec![1u32, 2u32]
+    ).await
+)   ;
 }
 
-fn make_signed_decryptreq(/*private_key: */ciphertext: &ElGamalEncryption, for_node: &u32, nodes_to_decrypt_from: &Vec<u32>) -> DecryptionRequest{
+async fn make_signed_decryptreq(/*private_key: */ciphertext: &ElGamalEncryption, for_node: &u32, nodes_to_decrypt_from: &Vec<u32>) -> DecryptionRequest{
     let c1x = ciphertext.c1.x.to_dec_string();
     let msg = format!("{}:{}", for_node, c1x);
-    let sig = Signature {r: 69.into(), s: 69.into(), v: 69};
+    let private_key = env::var("ZK_ESCROW_AUTHORITY_PRIVATE_KEY").expect("Expected ZK_ESCROW_AUTHORITY_PRIVATE_KEY in the environment");
+    
+    // let sig = Signature {r: 69.into(), s: 69.into(), v: 69};
+    let wallet = private_key.parse::<LocalWallet>().unwrap();
+    let sig = wallet.sign_message(&msg).await.unwrap();
     DecryptionRequest {
         c1: ciphertext.c1.clone(),
         nodes_to_decrypt_from: nodes_to_decrypt_from.clone(),
-        sig: Signature { r: sig.r, s: sig.s, v: sig.v }
+        sig: sig
     }
 }
 
