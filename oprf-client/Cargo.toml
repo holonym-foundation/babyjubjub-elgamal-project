@@ -16,6 +16,9 @@ rand = "0.8.5"
 getrandom = {features = ["js"]}
 console_error_panic_hook = "0.1.7"
 serde = "1.0.160"
+pbkdf2 = "0.12.1"
+hex-literal = "0.4.1"
+sha2 = "0.10.6"
 
 [lib]
 crate-type = ["cdylib"]

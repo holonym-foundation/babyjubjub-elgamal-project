@@ -4,6 +4,8 @@ use babyjubjub_rs::{Point, ElGamalEncryption, ToDecimalString, Fr, FrBigIntConve
 use decryptor_node::DecryptionRequest;
 use serde::{Deserialize, Serialize};
 use num_bigint::BigInt;
+use ethers_core::types::Signature;
+use tokio::task::spawn_blocking;
 #[derive(Serialize, Deserialize)]
 pub struct PrfRequest {
     #[serde(rename = "API_KEY")]
@@ -35,15 +37,15 @@ async fn main() {
     .unwrap();
     println!("response: {:?}", prf);
     let sini = BigInt::from_str("69").unwrap();
-    println!(" Signed Decryption Request: {:?}", make_signed_decryptreq(
+    let result = make_signed_decryptreq(
         &ElGamalEncryption {
             c1: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) },
             c2: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) }
         }, 
     &1u32, 
     &vec![1u32, 2u32]
-    ).await
-)   ;
+    ).await;
+    // println!(" Signed Decryption Request: {:?}", result);
 }
 
 async fn make_signed_decryptreq(/*private_key: */ciphertext: &ElGamalEncryption, for_node: &u32, nodes_to_decrypt_from: &Vec<u32>) -> DecryptionRequest{
@@ -53,7 +55,10 @@ async fn make_signed_decryptreq(/*private_key: */ciphertext: &ElGamalEncryption,
     
     // let sig = Signature {r: 69.into(), s: 69.into(), v: 69};
     let wallet = private_key.parse::<LocalWallet>().unwrap();
-    let sig = wallet.sign_message(&msg).await.unwrap();
+    let sig = spawn_blocking(move ||{
+        let res = wallet.sign_message(&msg);
+        res
+    }).await.unwrap().await.unwrap();
     DecryptionRequest {
         c1: ciphertext.c1.clone(),
         nodes_to_decrypt_from: nodes_to_decrypt_from.clone(),
