@@ -24,30 +24,36 @@ async fn main() {
     let decryption_reqs = nodes_to_decrypt_from.iter().map(|node_number| {
         // uncomment: make_signed_decryptreq(&ciphertext, node_number, &nodes_to_decrypt_from)
     });
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::Client::new();
     let req = PrfRequest {
         api_key: api_key,
         prf_in: "69".to_string() //ciphertext.c1.x.to_dec_string()
     };
-    let prf = client.post("https://prf.zkda.network/authority")
-    .json(&req)
-    .send()
-    .unwrap()
+    let prf = spawn_blocking(move ||{
+        client.post("https://prf.zkda.network/authority")
+        .json(&req)
+        .send()
+    })
+    .await.unwrap()
+    .await.unwrap()
     .text()
-    .unwrap();
+    .await.unwrap();
     println!("response: {:?}", prf);
     let sini = BigInt::from_str("69").unwrap();
-    let result = make_signed_decryptreq(
+    let result = spawn_blocking(move || {
+     make_signed_decryptreq(
         &ElGamalEncryption {
             c1: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) },
             c2: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) }
         }, 
-    &1u32, 
-    &vec![1u32, 2u32]
-    ).await;
+        &1u32, 
+        &vec![1u32, 2u32]
+        )
+    }).await.unwrap();
     // println!(" Signed Decryption Request: {:?}", result);
 }
 
+#[tokio::main]
 async fn make_signed_decryptreq(/*private_key: */ciphertext: &ElGamalEncryption, for_node: &u32, nodes_to_decrypt_from: &Vec<u32>) -> DecryptionRequest{
     let c1x = ciphertext.c1.x.to_dec_string();
     let msg = format!("{}:{}", for_node, c1x);
@@ -55,10 +61,11 @@ async fn make_signed_decryptreq(/*private_key: */ciphertext: &ElGamalEncryption,
     
     // let sig = Signature {r: 69.into(), s: 69.into(), v: 69};
     let wallet = private_key.parse::<LocalWallet>().unwrap();
-    let sig = spawn_blocking(move ||{
-        let res = wallet.sign_message(&msg);
-        res
-    }).await.unwrap().await.unwrap();
+    let sig = wallet.sign_message(&msg).await.unwrap();
+    // let sig = spawn_blocking(move ||{
+    //     let res = wallet.sign_message(&msg);
+    //     res
+    // }).await.unwrap().await.unwrap();
     DecryptionRequest {
         c1: ciphertext.c1.clone(),
         nodes_to_decrypt_from: nodes_to_decrypt_from.clone(),
