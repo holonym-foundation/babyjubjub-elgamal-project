@@ -20,10 +20,23 @@ async fn main() {
         // let ciphertext: ElGamalEncryption = serde_json::from_str(&json_ciphertext).unwrap(); 
     let api_key = env::var("ZK_ESCROW_AUTHORITY_API_KEY").expect("Expected ZK_ESCROW_AUTHORITY_API_KEY in the environment");
     // Just decrypt from nodes 1 and 2 for now:
-    let nodes_to_decrypt_from: Vec<u32> = vec![1, 2];
-    let decryption_reqs = nodes_to_decrypt_from.iter().map(|node_number| {
-        // uncomment: make_signed_decryptreq(&ciphertext, node_number, &nodes_to_decrypt_from)
-    });
+    let nodes_to_decrypt_from: &[u32] = &[1,2]; //Vec<u32> = vec![1, 2];
+
+    // let decryption_reqs = nodes_to_decrypt_from.iter().map(
+        for n in nodes_to_decrypt_from {
+            let sini: BigInt = BigInt::from_str("69").unwrap();
+            spawn_blocking(move || {
+            make_signed_decryptreq(
+                &ElGamalEncryption {
+                    c1: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) },
+                    c2: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) }
+                }, 
+                &n, 
+                &nodes_to_decrypt_from.to_vec()
+        )
+    }).await.unwrap();
+        }
+
     let client = reqwest::Client::new();
     let req = PrfRequest {
         api_key: api_key,
@@ -39,18 +52,7 @@ async fn main() {
     .text()
     .await.unwrap();
     println!("response: {:?}", prf);
-    let sini = BigInt::from_str("69").unwrap();
-    let result = spawn_blocking(move || {
-     make_signed_decryptreq(
-        &ElGamalEncryption {
-            c1: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) },
-            c2: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) }
-        }, 
-        &1u32, 
-        &vec![1u32, 2u32]
-        )
-    }).await.unwrap();
-    // println!(" Signed Decryption Request: {:?}", result);
+    
 }
 
 #[tokio::main]
