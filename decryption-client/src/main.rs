@@ -15,22 +15,25 @@ pub struct PrfRequest {
 }
 #[tokio::main]
 async fn main() {
+    let one_two_three: BigInt = BigInt::from_str("123").unwrap();
+
     // Uncomment:
         // let json_ciphertext = args().nth(1).unwrap();
         // let ciphertext: ElGamalEncryption = serde_json::from_str(&json_ciphertext).unwrap(); 
+    let ciphertext = ElGamalEncryption {
+        c1: Point { x: Fr::from_bigint(&one_two_three), y: Fr::from_bigint(&one_two_three) },
+        c2: Point { x: Fr::from_bigint(&one_two_three), y: Fr::from_bigint(&one_two_three) }
+    };
     let api_key = env::var("ZK_ESCROW_AUTHORITY_API_KEY").expect("Expected ZK_ESCROW_AUTHORITY_API_KEY in the environment");
     // Just decrypt from nodes 1 and 2 for now:
     let nodes_to_decrypt_from: &[u32] = &[1,2]; //Vec<u32> = vec![1, 2];
 
     // let decryption_reqs = nodes_to_decrypt_from.iter().map(
         for n in nodes_to_decrypt_from {
-            let sini: BigInt = BigInt::from_str("69").unwrap();
+            let ciphertext_ = ciphertext.clone(); // seems silly and there's likely better way to do this so ciphertext can be moved into each iteration's closure
             spawn_blocking(move || {
             make_signed_decryptreq(
-                &ElGamalEncryption {
-                    c1: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) },
-                    c2: Point { x: Fr::from_bigint(&sini), y: Fr::from_bigint(&sini) }
-                }, 
+                &ciphertext_,
                 &n, 
                 &nodes_to_decrypt_from.to_vec()
         )

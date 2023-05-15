@@ -1,5 +1,6 @@
 use ethers::contract::abigen;
 use ethers::prelude::*;
+use ethers_core::types::{Signature, SignatureError};
 use std::{sync::Arc, env};
 use ethers::signers::{LocalWallet, Signer};
 
