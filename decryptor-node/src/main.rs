@@ -5,7 +5,7 @@ use babyjubjub_elgamal::{Node, KeygenHelper};
 use babyjubjub_rs::{ToDecimalString};
 use decryptor_node::DecryptionRequest;
 use num_bigint::BigInt;
-use rocket::{State, serde::json::Json, response::status::BadRequest};
+use rocket::{State, serde::json::Json, response::status::BadRequest, figment::Figment};
 use dotenv::dotenv;
 
 #[macro_use] 
@@ -90,8 +90,17 @@ fn rocket() -> _ {
             panic!("Keygen step 1 has not been done yet. Please perform keygen on all nodes by exchanging the shares meant for them. Then store an array of the KeygenHelpers for your node in JSON format as the env var ZK_ESCROW_KEYGENS4ME. Then you may run this again. My KeygenHelpers for the other nodes are: {:?}", serde_json::to_string(&keygen).unwrap());
         }
     }
+    
+    let figment = rocket::Config::figment()
+        .merge(
+            (
+                "port", 
+                env::var("ZK_ESCROW_ROCKET_PORT").unwrap_or("8000".to_string())
+                .parse::<u16>().unwrap()
+            )
+        );
 
-    rocket::build()
-    .manage(node)
-    .mount("/", routes![index, do_nothing])
+    rocket::custom(figment)
+            .manage(node)
+            .mount("/", routes![index, do_nothing])
 }
