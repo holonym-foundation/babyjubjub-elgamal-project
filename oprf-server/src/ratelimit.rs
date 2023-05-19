@@ -1,4 +1,4 @@
-use redis::{Commands, RedisError, Connection, Client};
+use redis::{Commands, RedisError, Client};
 use rocket::http::Status;
 use rocket::request::{Request, FromRequest, Outcome};
 
@@ -7,6 +7,7 @@ const REQUESTS_PER_IP_PER_INTERVAL: u8 = 7;
 const INTERVAL: usize = 30; // seconds
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct RateLimit {
     remaining: u8,
 }
@@ -36,7 +37,7 @@ impl<'r> FromRequest<'r> for RateLimit {
                 let _: () = redis.incr(ip.to_string(), 1).unwrap();
                 num
             },
-            RedisError =>  { 
+            Err(_) =>  { 
                 let _: () = redis.set_ex(ip.to_string(), 1, INTERVAL).unwrap(); 
                 0
             }

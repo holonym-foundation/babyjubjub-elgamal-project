@@ -1,6 +1,6 @@
 use num_bigint::{BigInt};
 use num_traits::{ToPrimitive, FromPrimitive};
-use babyjubjub_rs::{Fr, Fl, Point, ElGamalEncryption, B8, FrBigIntConversion};
+use babyjubjub_rs::{Fl, Point, ElGamalEncryption, B8, FrBigIntConversion};
 use polynomial::Polynomial;
 use serde::{Serialize, Deserialize};
 use crate::polynomial::lagrange_basis_at_0;

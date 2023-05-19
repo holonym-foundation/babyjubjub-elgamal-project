@@ -1,11 +1,9 @@
 
 use clap::{Subcommand, Args, Parser};
 use ff::PrimeField;
+use num_bigint::{RandBigInt, ToBigInt};
 use std::env;
-// use issuer::Issuer;
-use babyjubjub_rs::{Fr, PrivateKey, ElGamalEncryption, B8, new_key, Point, encrypt_elgamal, Q, MAX_MSG, ToDecimalString};
-use num_bigint::{BigInt, ToBigInt, BigUint, RandBigInt};
-use num_traits::cast::FromPrimitive;
+use babyjubjub_rs::{encrypt_elgamal, Fr, PrivateKey, ElGamalEncryption, Point, Q, ToDecimalString};
 
 /// BabyJubJub ElGamal
 #[derive(Parser)]
@@ -59,7 +57,7 @@ fn main() {
     println!("ds {:?}", ds.x.to_dec_string());
     let p = match env::var("ELGAMAL_PRIVKEY_HOLONYM") {
         Ok(privkey) => privkey,
-        Err(error) => {
+        Err(_) => {
             panic!("ELGAMAL_PRIVKEY_HOLONYM does not exist. It should be a 32-byte hex string such as 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef but random")
         }
     };
@@ -75,7 +73,7 @@ fn main() {
     //     some_point, my_pub, nonce, encrypt_elgamal(&my_pub, &nonce, &some_point)
     // );
     let cli = Cli::parse();
-    let res = match &cli.command {
+    let _ = match &cli.command {
         Commands::Encrypt(e) => println!("{:?}", encrypt_elgamal(
             &Point {
                 x: Fr::from_str(&e.pkx).unwrap(),

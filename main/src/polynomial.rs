@@ -45,7 +45,7 @@ impl Polynomial {
         let sub_order = SUBORDER.clone(); // Perhaps not most efficient way of doing it but it should be OK
         let mut coeffs: Vec<BigInt> = vec![];
         let mut recent: Vec<u8> = seed.clone();
-        for i in 0..degree+1 {
+        for _ in 0..degree+1 {
             let mut h = Blake2b512::new();
             h.update(recent);
             recent = h.finalize().to_vec();
@@ -89,7 +89,6 @@ pub fn lagrange_basis_at_0(i: u32, indices: &Vec<u32>) -> Fl {
     // assert!(n > 0, "n must be greater than 0");
     let one = Fl::one();
     let mut acc = one.clone();
-    let mut j: u32 = 1;
     let i_ = Fl::from_str(&i.to_string()).unwrap();
     // since we are evaluating L_i(x) where x=0, can set x to 0 in formula for lagrange basis. Formula becomes becomes product of j / (j-i) for all j not equal to i
     // while j <= n {
@@ -111,7 +110,7 @@ pub fn lagrange_basis_at_0(i: u32, indices: &Vec<u32>) -> Fl {
 
 #[cfg(test)]
 mod tests {
-    use std::{ops::Mul, str::FromStr};
+    use std::str::FromStr;
     use num_bigint::ToBigInt;
     use super::*;
 
@@ -143,7 +142,7 @@ mod tests {
         // TODO: refactor this to be more concise
 
         // test for reconstructing y-intercept of line with points (1,5) and (2,6). test that y-intercept is 4
-        let n: u32 = 2; // n  =  number of shares  =  degree of polynomial + 1
+        // let n: u32 = 2; // n  =  number of shares  =  degree of polynomial + 1
         let l1 = lagrange_basis_at_0(1 as u32, &vec![1,2]);
         let l2 = lagrange_basis_at_0(2 as u32, &vec![1,2]);
 

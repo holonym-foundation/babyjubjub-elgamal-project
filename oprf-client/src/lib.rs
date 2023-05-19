@@ -1,6 +1,6 @@
 use std::{panic, str::FromStr};
 
-use babyjubjub_rs::{Point, SUBORDER, B8, Fr, ToDecimalString, Fl};
+use babyjubjub_rs::{Point, SUBORDER, B8, ToDecimalString, Fl};
 use ff::{PrimeField, Field};
 use num_bigint::{BigInt, Sign, RandBigInt};
 use serde::{Serialize, Deserialize};
