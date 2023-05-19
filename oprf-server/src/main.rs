@@ -9,7 +9,7 @@ use rocket::{Request, Response, fairing::{Fairing, Info, Kind}, http::{Header, S
 #[macro_use] extern crate rocket;
 
 pub struct Cors;
-const allow_origins: [&'static str; 4] = ["https://silkwallet.net", "http://localhost:3000", "http://localhost:3001", "https://silk-delta.vercel.app"];
+const ALLOW_ORIGINS: [&'static str; 5] = ["https://silkwallet.net", "https://silksecure.net","http://localhost:3000", "http://localhost:3001", "https://silk-delta.vercel.app"];
 
 #[rocket::async_trait]
 impl Fairing for Cors {
@@ -21,7 +21,7 @@ impl Fairing for Cors {
     }
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
         let _origin = _request.headers().get_one("origin").unwrap();
-        let origin = if allow_origins.contains(&_origin) { _origin } else { "null" };
+        let origin = if ALLOW_ORIGINS.contains(&_origin) { _origin } else { "null" };
 
         response.set_status(Status::new(200));
         
