@@ -17,7 +17,7 @@ mod cors;
 
 // this route is solely so that a TLS connection can be started early before any user action and automatically cached by both parties. This avoids the handshake latency overhead when the user requests the OPRF
 #[get("/")]
-fn do_nothing(r: RateLimit) -> &'static str { println!("remaining requests: {:?}", r); "GM" }
+fn good_morn(r: RateLimit) -> &'static str { "GM" }
 
 #[post("/oprf", format = "json", data = "<point>")]
 fn index(privkey: &State<BigInt>, point: Json<Point>) -> Result<String, BadRequest<&'static str>> {
@@ -49,6 +49,6 @@ fn rocket() -> _ {
     .manage(privkey)
     .manage(rlredis)
     .attach(Cors)
-    .mount("/", routes![index, do_nothing])
+    .mount("/", routes![index, good_morn])
     .register("/", catchers![rate_limit])
 }
