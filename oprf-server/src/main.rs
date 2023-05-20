@@ -12,10 +12,10 @@ mod cors;
 
 // this route is solely so that a TLS connection can be started early before any user action and automatically cached by both parties. This avoids the handshake latency overhead when the user requests the OPRF
 #[get("/")]
-fn good_morn(_r: RateLimit) -> &'static str { "GM" }
+fn good_morn() -> &'static str { "GM" }
 
 #[post("/oprf", format = "json", data = "<point>")]
-fn index(privkey: &State<BigInt>, point: Json<Point>) -> Result<String, BadRequest<&'static str>> {
+fn index(privkey: &State<BigInt>, _r: RateLimit, point: Json<Point>) -> Result<String, BadRequest<&'static str>> {
     // Check it is safe to proceed, i.e. point is on the curve and in subgroup
     if !point.on_curve() {
         return Err(BadRequest(Some("Not on curve")));
