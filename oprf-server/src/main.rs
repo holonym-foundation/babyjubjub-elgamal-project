@@ -23,7 +23,7 @@ pub struct Keys {
 }
 
 // this route is solely so that a TLS connection can be started early before any user action and automatically cached by both parties. This avoids the handshake latency overhead when the user requests the OPRF
-#[get("/")]
+#[get("/ping")]
 fn good_morn() -> &'static str { "GM" }
 
 // this route is solely so that a TLS connection can be started early before any user action and automatically cached by both parties. This avoids the handshake latency overhead when the user requests the OPRF
