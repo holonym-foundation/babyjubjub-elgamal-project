@@ -1365,6 +1365,7 @@ dependencies = [
  "blake2",
  "console_error_panic_hook",
  "ff_ce 0.11.0",
+ "getrandom",
  "num-bigint 0.4.3",
  "rand 0.8.5",
  "serde",

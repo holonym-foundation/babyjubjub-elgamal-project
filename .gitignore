@@ -2,3 +2,5 @@
 wasm-bindings/node_modules
 *.env
 wasm-bindings/.env
+dump.rdb
+
