@@ -1,7 +1,7 @@
 use rocket::{Request, Response, fairing::{Fairing, Info, Kind}, http::{Header, Status}};
 
 pub struct Cors;
-const ALLOW_ORIGINS: [&'static str; 5] = ["https://silkwallet.net", "https://silksecure.net","http://localhost:3000", "http://localhost:3001", "https://silk-delta.vercel.app"];
+const ALLOW_ORIGINS: [&'static str; 6] = ["https://silkwallet.net", "https://silksecure.net", "https://staging.silksecure.net", "http://localhost:3000", "http://localhost:3001", "https://silk-delta.vercel.app"];
 
 #[rocket::async_trait]
 impl Fairing for Cors {
