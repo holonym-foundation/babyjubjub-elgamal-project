@@ -16,5 +16,8 @@ rand = "0.8.5"
 console_error_panic_hook = "0.1.7"
 serde = "1.0.160"
 
+[dependencies.getrandom]
+features = ["js"]
+
 [lib]
 crate-type = ["cdylib"]

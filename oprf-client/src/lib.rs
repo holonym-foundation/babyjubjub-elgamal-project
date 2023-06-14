@@ -84,10 +84,10 @@ pub fn step2(unmasker: String, server_response: DLEQProof) -> std::result::Resul
 
 #[wasm_bindgen]
 impl Client {
-    pub fn step1(plaintext: &str,) -> Result<JsValue> {
-        step1(plaintext).unwrap()
-            // .map(|o: Step1Result|o.into())
-            // .map_err(|e|e.into())
+    pub fn step1(plaintext: &str) -> Result<JsValue> {
+            step1(plaintext)
+            .map(|o|serde_wasm_bindgen::to_value(&o).unwrap())
+            .map_err(|e|e.into())
     }
 
     pub fn step2(unmasker: String, response: JsValue) -> Result<Vec<u8>> {
